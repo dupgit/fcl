@@ -1,0 +1,10 @@
+Compiling the library if you have the svn sources (the easy way)
+
+ ./autoclean.sh
+ ./autogen.sh
+ ./configure
+ make
+
+Optional (system installation) :
+ sudo make install
+

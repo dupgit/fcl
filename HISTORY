@@ -1,0 +1,8 @@
+
+07.09.2010
+    This project has been started to cover a hole in the implementation of
+    GtkHex. Someone on IRC (on the gnome french channel) told me that I could
+    patch it in order to allow it to open files of any sizes but that in any
+    cases I had to not break the API. The only way I found is to build a library
+    on which GtkHex will rely on. This is supposed to be that library.
+    The name of the project is a reference to the FCL Basket Club in Lyon.
