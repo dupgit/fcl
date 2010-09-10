@@ -18,7 +18,9 @@ dnl **************************************************
 dnl * Libraries requirements                         *
 dnl **************************************************
 GLIB2_VERSION=2.10.0
+GIO_VERSION=2.10.0
 AC_SUBST(GLIB2_VERSION)
+AC_SUBST(GIO_VERSION)
 
 AM_MAINTAINER_MODE
 
@@ -82,6 +84,11 @@ dnl * checking for glib                              *
 dnl **************************************************
 PKG_CHECK_MODULES(GLIB2,[glib-2.0 >= $GLIB2_VERSION])
 
+dnl **************************************************
+dnl * checking for gio                              *
+dnl **************************************************
+PKG_CHECK_MODULES(GIO,[gio-2.0 >= $GIO_VERSION])
+
 AC_PROG_INSTALL
 
 CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-declarations \
@@ -105,6 +112,8 @@ AC_SUBST(LDFLAGS)
 AC_SUBST(CFLAGS)
 AC_SUBST(GLIB2_CFLAGS)
 AC_SUBST(GLIB2_LIBS)
+AC_SUBST(GIO_CFLAGS)
+AC_SUBST(GIO_LIBS)
 
 AC_CONFIG_FILES([Makefile src/Makefile libfcl.pc])
 AC_OUTPUT

@@ -52,6 +52,22 @@
 #define LIBFCL_VERSION "0.0.0 (00.00.0000)"
 
 
+/**
+ * @def LIBFCL_BUF_DELETE
+ * Used in buffers to indicate that the buffer is a deletion buffer
+ *
+ * @def LIBFCL_BUF_INSERT
+ * Used to indicate that the buffer is to be inserted in the file at the given
+ * position
+ *
+ * @def LIBFCL_BUF_OVERWRITE
+ * Used to indicate that the buffer will overwrite the space in the file at the
+ * given position
+ */
+#define LIBFCL_BUF_DELETE 16
+#define LIBFCL_BUF_INSERT 32
+#define LIBFCL_BUF_OVERWRITE 48
+
 
 /**
  * @struct fcl_file_t
@@ -60,9 +76,25 @@
  */
 typedef struct
 {
-    gchar *name;    /**< name for the file */
-    guint64 size;   /**< file's size       */
+    gchar *name;               /**< Name for the file               */
+    goffset real_size;         /**< Actual size of the file         */
+    GFile *the_file;           /**< The corresponding GFile         */
+    GInputStream *in_stream;   /**< Stream used for reading         */
+    GOutputStream *out_stream; /**< Stream used for writing         */
+    GSequence *sequence;       /**< Sequence of buffers (fcl_buf_t) */
 } fcl_file_t;
 
+
+/**
+ * @struct buf_t
+ * Structure that acts as buffer
+ */
+typedef struct
+{
+    goffset offset;     /**< Offset of the buffer */
+    goffset buf_size;   /**< Size of the buffer   */
+    gint8 buf_type;     /**< Type of the buffer   */
+    guchar *buffer;     /**< The buffer (if any)  */
+} fcl_buf_t;
 
 endif /* _LIBFCL_H_ */
