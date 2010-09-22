@@ -9,7 +9,7 @@ DEFS = 	-DPLUGINS_DIR=\"$(plugins_dir)\" 	\
 		-I$(SRC_DIR)/include
 
 libdir=$(exec_prefix)/lib
-includedir=$(prefix)/include
+includedir=$(prefix)/include/libfcl
 
 headerfiles = 				\
 	include/fcl.h

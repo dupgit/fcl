@@ -124,9 +124,10 @@ echo "*** Dumping configuration ***"
 echo
 echo "    - Host                   : $host"
 echo "    - Compiler               : ${CC}"
-echo "    - Prefix                 : $prefix"
+echo "    - Prefix                 : ${prefix}"
 echo "    - Exec prefix            : $exec_prefix"
 echo "    - Data dir               : $datadir"
+echo "    - Include dir            : $includedir"
 echo
 echo "    You can now run 'make' to compile libfcl"
 echo

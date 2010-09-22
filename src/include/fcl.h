@@ -28,6 +28,7 @@
 #define _LIBFCL_H_
 
 #include <glib.h>
+#include <gio/gio.h>
 #include <stdio.h>
 
 #include "config.h"
@@ -53,6 +54,43 @@
 
 
 /**
+ * @def LIBFCL_MODE_READ
+ * Mode to open the file. In this mode, the file will be opened in read only
+ * The library is not supposed to manage any buffers in this mode
+ *
+ * @def LIBFCL_MODE_WRITE
+ * Mode to open the file. In this mode, the file is opened for writing and
+ * reading (sort of appending). The file may be created if it does not exists.
+ * The library will manage buffers and such.
+ *
+ * @def LIBFCL_MODE_CREATE
+ * Mode to open a file. In this mode, the file is created. If an existing file
+ * already exists it is replaced by the new one.
+ */
+#define LIBFCL_MODE_READ 0
+#define LIBFCL_MODE_WRITE 2
+#define LIBFCL_MODE_CREATE 4
+
+
+/**
+ * @struct fcl_file_t
+ * Structure that contains all the definitions needed by the library for a
+ * file
+ */
+typedef struct
+{
+    gchar *name;                   /**< Name for the file                */
+    gint mode;                     /** Mode in which the file was opened */
+    goffset real_size;             /**< Actual size of the file          */
+    GFile *the_file;               /**< The corresponding GFile          */
+    GFileInputStream *in_stream;   /**< Stream used for reading          */
+    GFileOutputStream *out_stream; /**< Stream used for writing          */
+    GSequence *sequence;           /**< Sequence of buffers (fcl_buf_t)  */
+} fcl_file_t;
+
+
+
+/**
  * @def LIBFCL_BUF_DELETE
  * Used in buffers to indicate that the buffer is a deletion buffer
  *
@@ -68,33 +106,24 @@
 #define LIBFCL_BUF_INSERT 32
 #define LIBFCL_BUF_OVERWRITE 48
 
-
-/**
- * @struct fcl_file_t
- * Structure that contains all the definitions needed by the library for a
- * file
- */
-typedef struct
-{
-    gchar *name;               /**< Name for the file               */
-    goffset real_size;         /**< Actual size of the file         */
-    GFile *the_file;           /**< The corresponding GFile         */
-    GInputStream *in_stream;   /**< Stream used for reading         */
-    GOutputStream *out_stream; /**< Stream used for writing         */
-    GSequence *sequence;       /**< Sequence of buffers (fcl_buf_t) */
-} fcl_file_t;
-
-
 /**
  * @struct buf_t
  * Structure that acts as buffer
  */
 typedef struct
 {
-    goffset offset;     /**< Offset of the buffer */
-    goffset buf_size;   /**< Size of the buffer   */
-    gint8 buf_type;     /**< Type of the buffer   */
-    guchar *buffer;     /**< The buffer (if any)  */
+    goffset offset;     /**< Offset of the buffer                            */
+    goffset buf_size;   /**< Size of the buffer                              */
+    gint8 buf_type;     /**< Type of the buffer (insert, delete, overwrite)  */
+    guchar *buffer;     /**< The buffer (if any)                             */
 } fcl_buf_t;
 
-endif /* _LIBFCL_H_ */
+
+/** Public part of the library
+ */
+
+extern fcl_file_t *fcl_open_file(gchar *path, gint mode);
+
+
+
+#endif /* _LIBFCL_H_ */
