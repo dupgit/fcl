@@ -1,9 +1,10 @@
-SUBDIRS = src
+SUBDIRS = src test
 
 EXTRA_DIST = 		\
 	libfcl.pc.in	\
 	autogen.sh		\
 	autoclean.sh	\
+	RoadMap			\
 	HISTORY
 
 pkgconfigdir = $(libdir)/pkgconfig

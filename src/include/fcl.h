@@ -23,6 +23,10 @@
  */
 /** @file fcl.h
  * Header for the library
+ *
+ * This library is intented to manage the file at a level that allow one
+ * to edit binary files directly without bothering with the memory issues
+ * and such.
  */
 #ifndef _LIBFCL_H_
 #define _LIBFCL_H_

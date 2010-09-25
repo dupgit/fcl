@@ -1,7 +1,8 @@
 22.09.2010
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Typos and include dir corrections
-
+     * Some documentation has moved to the fcl.h file has this is the file that
+       gets distributed with the library
 
 21.09.2010
    - Olivier Delhomme <olivier.delhomme@free.fr>

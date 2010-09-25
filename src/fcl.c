@@ -23,10 +23,6 @@
  */
 /** @file fcl.c
  * Main library file
- *
- * This library is intented to manage the file at a level that allow one
- * to edit binary files directly without bothering with the memory issues
- * and such.
  */
 /**
  * @author Olivier DELHOMME,
