@@ -24,11 +24,17 @@
 /** @file libfcltest.c
  */
 
-#include "libfcltest.h"
-#include <libfcl/fcl.h>
+#include <stdio.h>
+#include <fcl.h>
 
+#include "libfcltest.h"
 
 int main(int argc, char **argv)
 {
+    fcl_file_t *my_test_file = NULL;
+
+    fprintf(stdout, "Testing libfcl ...\n");
+
+    my_test_file = fcl_open_file("/bin/sh", LIBFCL_MODE_READ);
 }
 

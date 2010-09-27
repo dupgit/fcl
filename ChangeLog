@@ -1,3 +1,9 @@
+27.09.2010
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * configure.ac and Makefile.am corrections
+     * Now testlibfcl compiles and ... seg faults ! This shows that testing is
+       more than important.
+
 22.09.2010
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Typos and include dir corrections

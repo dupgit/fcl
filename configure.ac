@@ -4,6 +4,7 @@ AC_INIT([LIBFCL], [0.0.1],
         [Olivier Delhomme],
         [libfcl])
 AC_CONFIG_HEADER([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([$PACKAGE_TARNAME], [$PACKAGE_VERSION])
 
 dnl **************************************************
@@ -115,7 +116,7 @@ AC_SUBST(GLIB2_LIBS)
 AC_SUBST(GIO_CFLAGS)
 AC_SUBST(GIO_LIBS)
 
-AC_CONFIG_FILES([Makefile src/Makefile libfcl.pc])
+AC_CONFIG_FILES([Makefile src/Makefile test/Makefile libfcl.pc])
 AC_OUTPUT
 
 

@@ -24,5 +24,7 @@
 /** @file libfcltest.h
  */
 
+#ifndef _TESTLIBFCL_H_
+#define _TESTLIBFCL_H_
 
-
+#endif /* _TESTLIBFCL_H */

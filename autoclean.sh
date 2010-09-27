@@ -47,6 +47,7 @@ find . -name *.gcno -exec rm -f {} \;
 echo "find . -name *.gcno -exec rm -f {} \;"
 find . -name gmon.out -exec rm -f {} \;
 echo "find . -name gmon.out -exec rm -f {} \;"
-
+rm -f src/libfcl.la
+echo "rm -f src/libfcl.la"
 
 
