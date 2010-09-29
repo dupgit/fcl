@@ -31,23 +31,23 @@
  */
 #include "fcl.h"
 
-static fcl_file_t *new_fcl_file_t(void);
+static fcl_file_t *new_fcl_file_t(gchar *path, gint mode);
 static goffset get_gfile_file_size(GFile *the_file);
 
 /**
  * @return a newly initialiazed empty fcl_file_t structure
  */
-static fcl_file_t *new_fcl_file_t(void)
+static fcl_file_t *new_fcl_file_t(gchar *path, gint mode)
 {
 
     fcl_file_t *a_file = NULL;
 
     a_file = (fcl_file_t *) g_malloc0 (sizeof(fcl_file_t));
 
-    a_file->name = NULL;
-    a_file->mode = -1;
-    a_file->real_size = 0;
-    a_file->the_file = NULL;
+    a_file->the_file = g_file_new_for_path(path);
+    a_file->name = g_strdup(path);
+    a_file->mode = mode;
+    a_file->real_size = get_gfile_file_size(a_file->the_file);
     a_file->in_stream = NULL;
     a_file->out_stream = NULL;
     a_file->sequence = g_sequence_new(NULL); /** @todo have a destroy function here */
@@ -82,6 +82,15 @@ static goffset get_gfile_file_size(GFile *the_file)
 
 
 /**
+ * This function initializes the library it has to invoked first
+ */
+void libfcl_initialize(void)
+{
+    g_type_init();
+}
+
+
+/**
  * Opens a file. Nothing is performed on it.
  * @param path : the path of the file to be opened
  * @param mode : the mode to open the file (LIBFCL_MODE_READ, LIBFCL_MODE_WRITE,
@@ -96,33 +105,22 @@ fcl_file_t *fcl_open_file(gchar *path, gint mode)
     switch (mode)
         {
             case LIBFCL_MODE_READ:
-                a_file = new_fcl_file_t();
-                a_file->the_file = g_file_new_for_path(path);
-                a_file->mode = mode;
-                a_file->name = g_strdup(path);
+                a_file = new_fcl_file_t(path, mode);
                 a_file->out_stream = NULL;
                 a_file->in_stream = g_file_read(a_file->the_file, NULL, NULL);
-                a_file->real_size = get_gfile_file_size(a_file->the_file);
                 return a_file;
             break;
             case LIBFCL_MODE_WRITE:
-                a_file = new_fcl_file_t();
-                a_file->the_file = g_file_new_for_path(path);
-                a_file->mode = mode;
-                a_file->name = g_strdup(path);
+                a_file = new_fcl_file_t(path, mode);
                 a_file->out_stream = g_file_append_to(a_file->the_file, G_FILE_CREATE_NONE, NULL, NULL);
                 a_file->in_stream = g_file_read(a_file->the_file, NULL, NULL);
-                a_file->real_size = get_gfile_file_size(a_file->the_file);
                 return a_file;
             break;
             case LIBFCL_MODE_CREATE:
-                a_file = new_fcl_file_t();
-                a_file->the_file = g_file_new_for_path(path);
-                a_file->mode = mode;
-                a_file->name = g_strdup(path);
+                a_file = new_fcl_file_t(path, mode);
                 a_file->out_stream = g_file_replace(a_file->the_file, NULL, FALSE, G_FILE_CREATE_REPLACE_DESTINATION, NULL, NULL);
                 a_file->in_stream = g_file_read(a_file->the_file, NULL, NULL);
-                a_file->real_size = get_gfile_file_size(a_file->the_file);
+                return a_file;
             break;
             default:
                 return NULL;
@@ -130,5 +128,28 @@ fcl_file_t *fcl_open_file(gchar *path, gint mode)
         }
 }
 
+/**
+ * This function closes a fcl_file_t
+ * @param the fcl_file_t to close
+ */
+void fcl_close_file(fcl_file_t *a_file)
+{
+    g_free(a_file->name);
 
+    if (a_file->in_stream != NULL)
+        {
+            g_input_stream_close(a_file->in_stream, NULL, NULL);
+        }
+
+    if (a_file->out_stream != NULL)
+        {
+            g_output_stream_close(a_file->out_stream, NULL, NULL);
+        }
+
+    g_object_unref(a_file->the_file);
+
+    g_sequence_free(a_file->sequence);
+
+    g_free(a_file);
+}
 

@@ -29,12 +29,59 @@
 
 #include "libfcltest.h"
 
-int main(int argc, char **argv)
+static void test_openning_and_closing_files(void);
+
+
+static void test_openning_and_closing_files(void)
 {
     fcl_file_t *my_test_file = NULL;
 
-    fprintf(stdout, "Testing libfcl ...\n");
+    my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
+    if (my_test_file != NULL)
+        {
+           fprintf(stdout, "[ OK ] Openning in read mode seems ok : %Ld\n", my_test_file->real_size);
+        }
+    else
+        {
+           fprintf(stdout, "[FAIL] Openning in read mode seems wrong.\n");
+        }
 
-    my_test_file = fcl_open_file("/bin/sh", LIBFCL_MODE_READ);
+    fcl_close_file(my_test_file);
+
+    my_test_file = fcl_open_file("/tmp/test.libfcl", LIBFCL_MODE_WRITE);
+    if (my_test_file != NULL)
+        {
+           fprintf(stdout, "[ OK ] Openning in write mode seems ok.\n");
+        }
+    else
+        {
+           fprintf(stdout, "[FAIL] Openning in write mode seems wrong.\n");
+        }
+
+    fcl_close_file(my_test_file);
+
+    my_test_file = fcl_open_file("/tmp/test.libfcl", LIBFCL_MODE_WRITE);
+    if (my_test_file != NULL)
+        {
+           fprintf(stdout, "[ OK ] Openning in create mode seems ok.\n");
+        }
+    else
+        {
+           fprintf(stdout, "[FAIL] Openning in create mode seems wrong.\n");
+        }
+
+    fcl_close_file(my_test_file);
+}
+
+
+int main(int argc, char **argv)
+{
+
+    fprintf(stdout, "Testing libfcl ...\n");
+    libfcl_initialize();
+
+    test_openning_and_closing_files();
+
+    return 0;
 }
 

@@ -1,3 +1,9 @@
+29.09.2010
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * Avoid duplicating code
+     * Closing a file
+     * Now testing seems to work
+
 27.09.2010
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * configure.ac and Makefile.am corrections

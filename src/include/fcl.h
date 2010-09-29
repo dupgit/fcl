@@ -123,11 +123,29 @@ typedef struct
 } fcl_buf_t;
 
 
-/** Public part of the library
+/**
+ * Public part of the library
  */
 
+/**
+ * Opens a file. Nothing is performed on it.
+ * @param path : the path of the file to be opened
+ * @param mode : the mode to open the file (LIBFCL_MODE_READ, LIBFCL_MODE_WRITE,
+ *               LIBFCL_MODE_CREATE).
+ * @return a correctly filled fcl_file_t structure that represents the file
+ */
 extern fcl_file_t *fcl_open_file(gchar *path, gint mode);
 
+/**
+ * This function initializes the library it has to invoked first
+ */
+extern void libfcl_initialize(void);
+
+/**
+ * This function closes a fcl_file_t
+ * @param the fcl_file_t to close
+ */
+void fcl_close_file(fcl_file_t *a_file);
 
 
 #endif /* _LIBFCL_H_ */
