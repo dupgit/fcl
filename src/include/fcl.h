@@ -5,7 +5,7 @@
  *
  *  (C) Copyright 2010 Olivier Delhomme
  *  e-mail : olivier.delhomme@free.fr
- *  URL    : http://
+ *  URL    : https://gna.org/projects/fcl/
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -75,7 +75,6 @@
 #define LIBFCL_MODE_WRITE 2
 #define LIBFCL_MODE_CREATE 4
 
-
 /**
  * @struct fcl_file_t
  * Structure that contains all the definitions needed by the library for a
@@ -91,7 +90,6 @@ typedef struct
     GFileOutputStream *out_stream; /**< Stream used for writing          */
     GSequence *sequence;           /**< Sequence of buffers (fcl_buf_t)  */
 } fcl_file_t;
-
 
 
 /**
@@ -111,21 +109,38 @@ typedef struct
 #define LIBFCL_BUF_OVERWRITE 48
 
 /**
- * @struct buf_t
- * Structure that acts as buffer
+ * @struct fcl_buf_t
+ * Structure that acts as a buffer
  */
 typedef struct
 {
-    goffset offset;     /**< Offset of the buffer                            */
-    goffset buf_size;   /**< Size of the buffer                              */
-    gint8 buf_type;     /**< Type of the buffer (insert, delete, overwrite)  */
-    guchar *buffer;     /**< The buffer (if any)                             */
+    goffset offset;   /**< Offset of the buffer                            */
+    gsize buf_size;   /**< Size of the buffer                              */
+    gint8 buf_type;   /**< Type of the buffer (insert, delete, overwrite)  */
+    guchar *buffer;   /**< The buffer (if any)                             */
 } fcl_buf_t;
+
+
+/**
+ * @def LIBFCL_MAX_BUF_SIZE
+ * Maximum buffer size that the library handles (This value is 2^20 as this was
+ * the total amount of memory that my Atari 1040 ST had !)
+ *
+ * @def LIBFCL_BUF_SIZE
+ * Default buffer size
+ */
+#define LIBFCL_MAX_BUF_SIZE 1048576
+#define LIBFCL_BUF_SIZE 131072
 
 
 /**
  * Public part of the library
  */
+
+/**
+ * This function initializes the library it has to invoked first
+ */
+extern void libfcl_initialize(void);
 
 /**
  * Opens a file. Nothing is performed on it.
@@ -135,11 +150,6 @@ typedef struct
  * @return a correctly filled fcl_file_t structure that represents the file
  */
 extern fcl_file_t *fcl_open_file(gchar *path, gint mode);
-
-/**
- * This function initializes the library it has to invoked first
- */
-extern void libfcl_initialize(void);
 
 /**
  * This function closes a fcl_file_t

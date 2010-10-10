@@ -5,7 +5,7 @@
  *
  *  (C) Copyright 2010 Olivier Delhomme
  *  e-mail : olivier.delhomme@free.fr
- *  URL    : http://
+ *  URL    : https://gna.org/projects/fcl/
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -151,5 +151,67 @@ void fcl_close_file(fcl_file_t *a_file)
     g_sequence_free(a_file->sequence);
 
     g_free(a_file);
+}
+
+
+/**
+ * This function reads an fcl_buf_t buffer from an fcl_file_t
+ * @param a_file : the fcl_file_t file from which we want to read size bytes
+ * @param position : the position where we want to read bytes
+ * @param size : the number of bytes we want to read. If this value is higher
+ *               than LIBFCL_MAX_BUF_SIZE the function returns NULL
+ * @return Is everything is ok a filled fcl_buf_t buffer
+ */
+fcl_buf_t fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
+{
+
+    fcl_buf_t *a_buffer = NULL;  /**< the fcl_buf_t structure that will be returned */
+    gssize read  = 0;            /**< Number of bytes effectively read              */
+
+    if (size > LIBFCL_MAX_BUF_SIZE)
+        {
+            return NULL;
+        }
+
+    /* Defining a new buffer */
+    a_buffer = (fcl_buf_t *) g_malloc0 (sizeof(fcl_buf_t));
+
+    a_buffer->offset = position;
+    a_buffer->buf_size = size;
+    a_buffer->buf_type = LIBFCL_BUF_OVERWRITE;
+    a_buffer->buffer = (guchar *) g_malloc0 (sizeof(guchar)*size);
+
+    if (a_buffer->buffer == NULL)
+        {
+            /* A memory problem ? */
+            g_free(a_buffer);
+            return NULL;
+        }
+
+
+    if (a_file->mode == LIBFCL_MODE_READ)
+        {
+            /* direct read, no cache */
+            g_seekable_seek(G_SEEKABLE(a_file->in_stream), position, G_SEEK_SET, NULL, NULL);
+            read = g_input_stream_read(G_INPUT_STREAM(a_file->in_stream), a_buffer->buffer, size, NULL, NULL);
+
+            if (read != size && read > 0)
+                {
+                    /* Not everything was read (end of file ?) */
+                    a_buffer->buf_size = read;
+                }
+            else if (read < 0)
+                {
+                    /* something went wrong !! */
+                    g_free(a_buffer->buffer);
+                    g_free(a_buffer);
+                    return NULL;
+                }
+
+            return a_buffer;
+        }
+
+    g_free(a_buffer);
+    return NULL;
 }
 

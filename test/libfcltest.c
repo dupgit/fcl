@@ -5,7 +5,7 @@
  *
  *  (C) Copyright 2010 Olivier Delhomme
  *  e-mail : olivier.delhomme@free.fr
- *  URL    : http://
+ *  URL    : https://gna.org/projects/fcl/
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
