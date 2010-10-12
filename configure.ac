@@ -116,7 +116,7 @@ AC_SUBST(GLIB2_LIBS)
 AC_SUBST(GIO_CFLAGS)
 AC_SUBST(GIO_LIBS)
 
-AC_CONFIG_FILES([Makefile src/Makefile test/Makefile libfcl.pc])
+AC_CONFIG_FILES([Makefile po/Makefile.in src/Makefile test/Makefile libfcl.pc ])
 AC_OUTPUT
 
 

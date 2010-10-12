@@ -1,0 +1,6 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted in this order.
+../src/fcl.c
+../src/fcl.h
+../test/libfcltest.c
+../test/libfcltest.h
