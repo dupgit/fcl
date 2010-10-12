@@ -162,7 +162,7 @@ void fcl_close_file(fcl_file_t *a_file)
  *               than LIBFCL_MAX_BUF_SIZE the function returns NULL
  * @return Is everything is ok a filled fcl_buf_t buffer
  */
-fcl_buf_t fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
+fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
 {
 
     fcl_buf_t *a_buffer = NULL;  /**< the fcl_buf_t structure that will be returned */

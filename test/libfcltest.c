@@ -30,8 +30,38 @@
 #include "libfcltest.h"
 
 static void test_openning_and_closing_files(void);
+static void test_openning_and_reading_files(void);
+static void print_message(gboolean success, const char *format, ...);
 
+/**
+ * Prints a message from a test
+ * @param success indicates whether the test was sucessfull or not
+ * @param message the message to print
+ */
+static void print_message(gboolean success, const char *format, ...)
+{
+    va_list args;
+    gchar *str = NULL;
 
+    va_start(args, format);
+    str = g_strdup_vprintf(format, args);
+    va_end(args);
+
+    if (success)
+        {
+            fprintf(stdout, "[ OK ] ");
+            fprintf(stdout, "%s\n", str);
+        }
+    else
+        {
+            fprintf(stdout, "[FAIL] ");
+            fprintf(stdout, "%s\n", str);
+        }
+}
+
+/**
+ * This function tests openning files and closing them with different modes
+ */
 static void test_openning_and_closing_files(void)
 {
     fcl_file_t *my_test_file = NULL;
@@ -39,38 +69,44 @@ static void test_openning_and_closing_files(void)
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
     if (my_test_file != NULL)
         {
-           fprintf(stdout, "[ OK ] Openning in read mode seems ok : %Ld\n", my_test_file->real_size);
+            print_message(my_test_file != NULL, "Openning a file in read mode (%Ld)", my_test_file->real_size);
         }
     else
         {
-           fprintf(stdout, "[FAIL] Openning in read mode seems wrong.\n");
+            print_message(my_test_file != NULL, "Openning a file in read mode.");
         }
-
     fcl_close_file(my_test_file);
 
     my_test_file = fcl_open_file("/tmp/test.libfcl", LIBFCL_MODE_WRITE);
-    if (my_test_file != NULL)
+    print_message(my_test_file != NULL, "Openning a file in write mode.");
+    fcl_close_file(my_test_file);
+
+    my_test_file = fcl_open_file("/tmp/test.libfcl", LIBFCL_MODE_CREATE);
+    print_message(my_test_file != NULL, "Openning a file in create mode.");
+
+    fcl_close_file(my_test_file);
+}
+
+
+/**
+ * This function test openning, reading in the file and closing them
+ */
+static void test_openning_and_reading_files(void)
+{
+    fcl_file_t *my_test_file = NULL;
+    fcl_buf_t *buffer = NULL;
+
+    my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
+    buffer = fcl_read_bytes(my_test_file, 1, 3);
+
+    if (buffer != NULL && buffer->buffer != NULL)
         {
-           fprintf(stdout, "[ OK ] Openning in write mode seems ok.\n");
+            print_message(buffer != NULL, "Read : %s", buffer->buffer);
         }
     else
         {
-           fprintf(stdout, "[FAIL] Openning in write mode seems wrong.\n");
+            print_message(buffer != NULL, "Reading 3 bytes in /bin/bash !");
         }
-
-    fcl_close_file(my_test_file);
-
-    my_test_file = fcl_open_file("/tmp/test.libfcl", LIBFCL_MODE_WRITE);
-    if (my_test_file != NULL)
-        {
-           fprintf(stdout, "[ OK ] Openning in create mode seems ok.\n");
-        }
-    else
-        {
-           fprintf(stdout, "[FAIL] Openning in create mode seems wrong.\n");
-        }
-
-    fcl_close_file(my_test_file);
 }
 
 
@@ -81,6 +117,8 @@ int main(int argc, char **argv)
     libfcl_initialize();
 
     test_openning_and_closing_files();
+
+    test_openning_and_reading_files();
 
     return 0;
 }

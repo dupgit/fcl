@@ -142,6 +142,7 @@ typedef struct
  */
 extern void libfcl_initialize(void);
 
+
 /**
  * Opens a file. Nothing is performed on it.
  * @param path : the path of the file to be opened
@@ -151,11 +152,23 @@ extern void libfcl_initialize(void);
  */
 extern fcl_file_t *fcl_open_file(gchar *path, gint mode);
 
+
 /**
  * This function closes a fcl_file_t
  * @param the fcl_file_t to close
  */
-void fcl_close_file(fcl_file_t *a_file);
+extern void fcl_close_file(fcl_file_t *a_file);
+
+
+/**
+ * This function reads an fcl_buf_t buffer from an fcl_file_t
+ * @param a_file : the fcl_file_t file from which we want to read size bytes
+ * @param position : the position where we want to read bytes
+ * @param size : the number of bytes we want to read. If this value is higher
+ *               than LIBFCL_MAX_BUF_SIZE the function returns NULL
+ * @return Is everything is ok a filled fcl_buf_t buffer
+ */
+extern fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size);
 
 
 #endif /* _LIBFCL_H_ */
