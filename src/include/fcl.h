@@ -28,6 +28,7 @@
  * to edit binary files directly without bothering with the memory issues
  * and such.
  */
+
 #ifndef _LIBFCL_H_
 #define _LIBFCL_H_
 
@@ -78,7 +79,11 @@
 /**
  * @struct fcl_file_t
  * Structure that contains all the definitions needed by the library for a
- * file
+ * file.
+ *
+ * The sequence in fcl_file_t is ordered. The order is done with the offset of
+ * the fcl_buf_t structure. The size in that structure acts as the last part of
+ * the interval.
  */
 typedef struct
 {
@@ -166,9 +171,19 @@ extern void fcl_close_file(fcl_file_t *a_file);
  * @param position : the position where we want to read bytes
  * @param size : the number of bytes we want to read. If this value is higher
  *               than LIBFCL_MAX_BUF_SIZE the function returns NULL
- * @return Is everything is ok a filled fcl_buf_t buffer
+ * @return If everything is ok a filled fcl_buf_t buffer
  */
 extern fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size);
 
+/**
+ * This function writes a previously filled fcl_buf_t * buffer structure in the
+ * file.
+ * @warning it does do writes to disk directly. It only inserts correctly the
+ * buffer into the file structure.
+ * @param a_file : the fcl_file_t file to which we want to write size bytes
+ * @param a_buffer : The fcl_buf_t * buffer to write to the file
+ * @return True If everything is ok, False Otherwise
+ */
+gboolean fcl_write_bytes(fcl_file_t *a_file, fcl_buf_t *a_buffer);
 
 #endif /* _LIBFCL_H_ */

@@ -33,53 +33,12 @@
 
 static fcl_file_t *new_fcl_file_t(gchar *path, gint mode);
 static goffset get_gfile_file_size(GFile *the_file);
+static gint compare_offset_value(gconstpointer a, gconstpointer b, gpointer user_data);
+static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2);
 
-/**
- * @return a newly initialiazed empty fcl_file_t structure
- */
-static fcl_file_t *new_fcl_file_t(gchar *path, gint mode)
-{
-
-    fcl_file_t *a_file = NULL;
-
-    a_file = (fcl_file_t *) g_malloc0 (sizeof(fcl_file_t));
-
-    a_file->the_file = g_file_new_for_path(path);
-    a_file->name = g_strdup(path);
-    a_file->mode = mode;
-    a_file->real_size = get_gfile_file_size(a_file->the_file);
-    a_file->in_stream = NULL;
-    a_file->out_stream = NULL;
-    a_file->sequence = g_sequence_new(NULL); /** @todo have a destroy function here */
-
-    return a_file;
-}
-
-
-/**
- * Gets the file size of a Gfile object throught the GFileInfo query
- * @param the_file : a GFile object
- * @return a positive goffset number that represents the file size or -1 if
- *         something went wrong
- */
-static goffset get_gfile_file_size(GFile *the_file)
-{
-    GFileInfo *file_info = NULL;
-    goffset size = -1;
-
-    if (the_file != NULL)
-        {
-            file_info = g_file_query_info(the_file, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
-            size = g_file_info_get_size(file_info);
-            g_object_unref(file_info);
-            return size;
-        }
-    else
-        {
-            return -1;
-        }
-}
-
+/******************************************************************************/
+/********************************* Public API *********************************/
+/******************************************************************************/
 
 /**
  * This function initializes the library it has to invoked first
@@ -128,6 +87,7 @@ fcl_file_t *fcl_open_file(gchar *path, gint mode)
         }
 }
 
+
 /**
  * This function closes a fcl_file_t
  * @param the fcl_file_t to close
@@ -160,7 +120,7 @@ void fcl_close_file(fcl_file_t *a_file)
  * @param position : the position where we want to read bytes
  * @param size : the number of bytes we want to read. If this value is higher
  *               than LIBFCL_MAX_BUF_SIZE the function returns NULL
- * @return Is everything is ok a filled fcl_buf_t buffer
+ * @return If everything is ok a filled fcl_buf_t buffer
  */
 fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
 {
@@ -215,3 +175,166 @@ fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
     return NULL;
 }
 
+
+/**
+ * This function writes a previously filled fcl_buf_t * buffer structure in the
+ * file.
+ * @warning it does do writes to disk directly. It only inserts correctly the
+ * buffer into the file structure.
+ * @param a_file : the fcl_file_t file to which we want to write size bytes
+ * @param a_buffer : The fcl_buf_t * buffer to write to the file
+ * @return True If everything is ok, False Otherwise
+ */
+gboolean fcl_write_bytes(fcl_file_t *a_file, fcl_buf_t *a_buffer)
+{
+    GSequenceIter *iter = NULL;
+    GSequenceIter *next = NULL;
+    GSequenceIter *prev = NULL;
+    fcl_buf_t *buf_prev = NULL;
+    fcl_buf_t *buf_next = NULL;
+
+    if (a_file != NULL && a_buffer != NULL)
+        {
+            /* Insert the buffer in a sorted way */
+            iter = g_sequence_search(a_file->sequence, a_buffer, compare_offset_value, NULL);
+            prev = g_sequence_iter_prev(iter);
+            next = g_sequence_iter_next(iter);
+            buf_prev = g_sequence_get(prev);
+            buf_next = g_sequence_get(next);
+
+            if (buf_prev != NULL)
+
+
+        }
+
+
+}
+
+
+/******************************************************************************/
+/****************************** Intern functions ******************************/
+/******************************************************************************/
+
+/**
+ * Creates a new fcl_file_t structure from parameters
+ * @param path : path to the file (filename included).
+ * @param mode : mode in which one wants to open the file
+ * @return a newly initialiazed empty fcl_file_t structure
+ */
+static fcl_file_t *new_fcl_file_t(gchar *path, gint mode)
+{
+
+    fcl_file_t *a_file = NULL;
+
+    a_file = (fcl_file_t *) g_malloc0 (sizeof(fcl_file_t));
+
+    a_file->the_file = g_file_new_for_path(path);
+    a_file->name = g_strdup(path);
+    a_file->mode = mode;
+    a_file->real_size = get_gfile_file_size(a_file->the_file);
+    a_file->in_stream = NULL;
+    a_file->out_stream = NULL;
+    a_file->sequence = g_sequence_new(NULL); /** @todo have a destroy function here */
+
+    return a_file;
+}
+
+
+/**
+ * Gets the file size of a Gfile object throught the GFileInfo query
+ * @param the_file : a GFile object
+ * @return a positive goffset number that represents the file size or -1 if
+ *         something went wrong
+ */
+static goffset get_gfile_file_size(GFile *the_file)
+{
+    GFileInfo *file_info = NULL;
+    goffset size = -1;
+
+    if (the_file != NULL)
+        {
+            file_info = g_file_query_info(the_file, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
+            size = g_file_info_get_size(file_info);
+            g_object_unref(file_info);
+            return size;
+        }
+    else
+        {
+            return -1;
+        }
+}
+
+
+/**
+ * Compare function for the sequence. Compares buffers a and b. In fact it
+ * compares the offset of a and the offset of b
+ * @param a : a fcl_but_t * buffer
+ * @param b : a fcl_but_t * buffer
+ * @param user_data : not used here could be NULL
+ */
+static gint compare_offset_value(gconstpointer a, gconstpointer b, gpointer user_data)
+{
+    if (a != NULL && b != NULL)
+        {
+            if (a->offset < b->offset)
+                {
+                    return -1;
+                }
+            if (a->offset > b->offset)
+                {
+                    return +1;
+                }
+            if (a->offset == b->offset)
+                {
+                    return 0;
+                }
+        }
+    else if (a == NULL && b == NULL)
+        {
+            return 0;
+        }
+    else if (a == NULL)
+        {
+            return -1;
+        }
+    else if (b == NULL)
+        {
+            return +1;
+        }
+}
+
+
+/**
+ * Overlap function
+ * An assertion is made such that buffer1->offset < buffer2->offset
+ * @param buffer1 : a fcl_but_t * buffer
+ * @param buffer2 : a fcl_but_t * buffer
+ * @return 0 : the buffers does dot overlaps,
+ *         1 : buffer overlaps as follow : 1111111111
+ *                                             2222222222
+ *         2 : buffer overlaps as follow : 1111111111
+ *                                             2222
+ */
+static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
+{
+
+    if (buffer1 != NULL && buffer2 != NULL)
+        {
+            if ((buffer1->offset + buffer1->buf_size) > buffer2->offset && (buffer1->offset + buffer1->buf_size) < (buffer2->offset + buffer2->buf_size))
+                {
+                    return 1;
+                }
+           else if ((buffer1->offset + buffer1->buf_size) > buffer2->offset && (buffer1->offset + buffer1->buf_size) > (buffer2->offset + buffer2->buf_size))
+                {
+                    return 2;
+                }
+            else
+                {
+                    return 0;
+                }
+        }
+    else
+        {
+            return FALSE;
+        }
+}

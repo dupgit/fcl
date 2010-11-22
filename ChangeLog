@@ -1,3 +1,9 @@
+22.11.2010
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * Changelog corrections
+     * Documentation of the API
+     * Begining work on functions to enable writes to the file
+
 12.10.2010
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Testing reading a part of a file
@@ -6,7 +12,7 @@
 10.10.2010
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Link to the web site (https://gna.org/projects/fcl/)
-     * Added a doxygen documentation file and genrated a first documentation
+     * Added a doxygen documentation file and generated a first documentation
      * Working on reading a file
 
 29.09.2010
