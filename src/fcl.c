@@ -314,6 +314,7 @@ static gint compare_offset_value(gconstpointer a, gconstpointer b, gpointer user
  *                                             2222222222
  *         2 : buffer overlaps as follow : 1111111111
  *                                             2222
+ *         3 : the buffer is at the limits : 11111222222
  */
 static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
 {
@@ -324,9 +325,13 @@ static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
                 {
                     return 1;
                 }
-           else if ((buffer1->offset + buffer1->buf_size) > buffer2->offset && (buffer1->offset + buffer1->buf_size) > (buffer2->offset + buffer2->buf_size))
+            else if ((buffer1->offset + buffer1->buf_size) > buffer2->offset && (buffer1->offset + buffer1->buf_size) > (buffer2->offset + buffer2->buf_size))
                 {
                     return 2;
+                }
+            else if ((buffer1->offset + buffer1->buf_size) == buffer2->offset)
+                {
+                    return 3;
                 }
             else
                 {

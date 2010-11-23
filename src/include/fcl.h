@@ -98,6 +98,10 @@ typedef struct
 
 
 /**
+ * @def LIBFCL_BUF_INFILE
+ * Used in buffers to indicate that the buffer has already been inserted in the
+ * fcl_file_t file.
+ *
  * @def LIBFCL_BUF_DELETE
  * Used in buffers to indicate that the buffer is a deletion buffer
  *
@@ -109,9 +113,10 @@ typedef struct
  * Used to indicate that the buffer will overwrite the space in the file at the
  * given position
  */
+#define LIBFCL_BUF_INFILE 8
 #define LIBFCL_BUF_DELETE 16
 #define LIBFCL_BUF_INSERT 32
-#define LIBFCL_BUF_OVERWRITE 48
+#define LIBFCL_BUF_OVERWRITE 64
 
 /**
  * @struct fcl_buf_t
