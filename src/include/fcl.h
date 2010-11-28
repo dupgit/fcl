@@ -98,10 +98,21 @@ typedef struct
 
 
 /**
+ * @def LIBFCL_BUF_NOWHERE
+ * The buffer does not know where it is !
+ *
  * @def LIBFCL_BUF_INFILE
  * Used in buffers to indicate that the buffer has already been inserted in the
  * fcl_file_t file.
  *
+ * @def LIBFCL_BUF_TOINS
+ * This indicates that the buffer is to be inserted into the file
+ */
+#define LIBFCL_BUF_NOWHERE 3
+#define LIBFCL_BUF_INFILE 6
+#define LIBFCL_BUF_TOINS 12
+
+/**
  * @def LIBFCL_BUF_DELETE
  * Used in buffers to indicate that the buffer is a deletion buffer
  *
@@ -113,10 +124,10 @@ typedef struct
  * Used to indicate that the buffer will overwrite the space in the file at the
  * given position
  */
-#define LIBFCL_BUF_INFILE 8
 #define LIBFCL_BUF_DELETE 16
 #define LIBFCL_BUF_INSERT 32
-#define LIBFCL_BUF_OVERWRITE 64
+#define LIBFCL_BUF_OVERWRITE 48
+
 
 /**
  * @struct fcl_buf_t
@@ -124,10 +135,11 @@ typedef struct
  */
 typedef struct
 {
-    goffset offset;   /**< Offset of the buffer                            */
-    gsize buf_size;   /**< Size of the buffer                              */
-    gint8 buf_type;   /**< Type of the buffer (insert, delete, overwrite)  */
-    guchar *buffer;   /**< The buffer (if any)                             */
+    goffset offset;   /**< Offset of the buffer                                  */
+    gsize buf_size;   /**< Size of the buffer                                    */
+    gint8 buf_type;   /**< Type of the buffer (insert, delete, overwrite)        */
+    gint8 buf_where;  /**< Says whether the buffer is in the file already or not */
+    guchar *buffer;   /**< The buffer (if any)                                   */
 } fcl_buf_t;
 
 

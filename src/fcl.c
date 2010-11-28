@@ -179,8 +179,8 @@ fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
 /**
  * This function writes a previously filled fcl_buf_t * buffer structure in the
  * file.
- * @warning it does do writes to disk directly. It only inserts correctly the
- * buffer into the file structure.
+ * @warning it does not do writes to disk directly. It only inserts correctly
+ * the buffer into the file structure.
  * @param a_file : the fcl_file_t file to which we want to write size bytes
  * @param a_buffer : The fcl_buf_t * buffer to write to the file
  * @return True If everything is ok, False Otherwise
@@ -309,7 +309,7 @@ static gint compare_offset_value(gconstpointer a, gconstpointer b, gpointer user
  * An assertion is made such that buffer1->offset < buffer2->offset
  * @param buffer1 : a fcl_but_t * buffer
  * @param buffer2 : a fcl_but_t * buffer
- * @return 0 : the buffers does dot overlaps,
+ * @return 0 : the buffers does dot overlaps.
  *         1 : buffer overlaps as follow : 1111111111
  *                                             2222222222
  *         2 : buffer overlaps as follow : 1111111111
@@ -342,4 +342,50 @@ static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
         {
             return FALSE;
         }
+}
+
+
+/**
+ * Merging buffers. One buffer must be in the file and the other one not. As
+ * such when a file is merged it is inserted in the file ans thus can be merged
+ * with an another buffer.
+ * @param buffer1 : a fcl_but_t * buffer
+ * @param buffer2 : a fcl_but_t * buffer
+ * @return a merged buffer
+ */
+static gint merge_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
+{
+
+    gint overlaps = 0; /** says if and how the buffers overlaps */
+
+
+    overlaps = buffers_overlaps(buffer1, buffer2)
+
+    switch (overlaps)
+    {
+        case 0:
+            /* The buffers does not overlaps -> no need to merge them */
+        break;
+
+        case 1:
+            /* The buffers does overlaps as folows :
+             * 1111111111
+             *    2222222222
+             */
+        break;
+
+        case 2:
+            /* The buffers does overlaps as folows :
+             * 1111111111
+             *    22222
+             */
+        break;
+
+        case 3:
+            /* The buffers does overlaps as folows :
+             * 1111111111
+             *           22222
+             */
+        break;
+    }
 }
