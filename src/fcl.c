@@ -31,9 +31,12 @@
  */
 #include "fcl.h"
 
+static fcl_buf_t *new_fcl_buf_t(goffset position, gsize size, gint8 buf_type,  gint8 buf_where);
+static destroy_fcl_buf_t(fcl_buf_t *buffer);
+
 static fcl_file_t *new_fcl_file_t(gchar *path, gint mode);
 static goffset get_gfile_file_size(GFile *the_file);
-static gint compare_offset_value(gconstpointer a, gconstpointer b, gpointer user_data);
+static gint cmp_offset_value(gconstpointer a, gconstpointer b, gpointer user_data);
 static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2);
 
 /******************************************************************************/
@@ -134,17 +137,14 @@ fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
         }
 
     /* Defining a new buffer */
-    a_buffer = (fcl_buf_t *) g_malloc0 (sizeof(fcl_buf_t));
+    a_buffer = new_fcl_buf_t(position, size, LIBFCL_BUF_OVERWRITE, LIBFCL_BUF_NOWHERE);
 
-    a_buffer->offset = position;
-    a_buffer->buf_size = size;
-    a_buffer->buf_type = LIBFCL_BUF_OVERWRITE;
     a_buffer->buffer = (guchar *) g_malloc0 (sizeof(guchar)*size);
 
     if (a_buffer->buffer == NULL)
         {
             /* A memory problem ? */
-            g_free(a_buffer);
+            destroy_fcl_buf_t(a_buffer);
             return NULL;
         }
 
@@ -163,15 +163,14 @@ fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
             else if (read < 0)
                 {
                     /* something went wrong !! */
-                    g_free(a_buffer->buffer);
-                    g_free(a_buffer);
+                    destroy_fcl_buf_t(a_buffer);
                     return NULL;
                 }
 
             return a_buffer;
         }
 
-    g_free(a_buffer);
+    destroy_fcl_buf_t(a_buffer);
     return NULL;
 }
 
@@ -214,6 +213,40 @@ gboolean fcl_write_bytes(fcl_file_t *a_file, fcl_buf_t *a_buffer)
 /******************************************************************************/
 /****************************** Intern functions ******************************/
 /******************************************************************************/
+
+/**
+ * Creates a new empty buffer
+ */
+static fcl_buf_t *new_fcl_buf_t(goffset position, gsize size, gint8 buf_type,  gint8 buf_where)
+{
+    fcl_buf_t *a_buffer = NULL;  /**< the fcl_buf_t structure that will be returned */
+
+    a_buffer = (fcl_buf_t *) g_malloc0 (sizeof(fcl_buf_t));
+
+    a_buffer->offset = position;
+    a_buffer->buf_size = size;
+    a_buffer->buf_type = buf_type;
+    a_buffer->buf_where = buf_where;
+    a_buffer->buffer = NULL
+}
+
+
+/**
+ * Destroys a buffer (and the data in it !)
+ */
+static destroy_fcl_buf_t(fcl_buf_t *buffer)
+{
+    if (buffer != NULL)
+        {
+            if (buffer->buffer != NULL)
+                {
+                    g_free(buffer->buffer);
+                }
+
+            g_free(buffer);
+        }
+}
+
 
 /**
  * Creates a new fcl_file_t structure from parameters
@@ -270,9 +303,9 @@ static goffset get_gfile_file_size(GFile *the_file)
  * compares the offset of a and the offset of b
  * @param a : a fcl_but_t * buffer
  * @param b : a fcl_but_t * buffer
- * @param user_data : not used here could be NULL
+ * @param user_data : not used. Can be whatever the user want, even NULL
  */
-static gint compare_offset_value(gconstpointer a, gconstpointer b, gpointer user_data)
+static gint cmp_offset_value(gconstpointer a, gconstpointer b, gpointer user_data)
 {
     if (a != NULL && b != NULL)
         {
@@ -346,6 +379,32 @@ static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
 
 
 /**
+ * Merges two adjacent buffers into one
+ * @param buffer1 : a fcl_but_t * buffer
+ * @param buffer2 : a fcl_but_t * buffer
+ * @return a merged buffer. buffer1 and buffer2 are destroyed
+ * @warning we suppose that buffer1 and buffer 2 exists, are adjacent, of the
+ * same type and in the same location (memory eg LIBFCL_BUF_TOINS)
+ */
+static fcl_buf_t *merge_adjacent_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
+{
+    fcl_buf_t *new_buffer = NULL;
+
+    new_buffer = new_fcl_buf_t(buffer1->position, buffer1->size+buffer2->size, buffer1->type, buffer1->where);
+
+    new_buffer->buffer = (fcl_buf_t *) g_malloc0 ((buffer1->size+buffer2->size)*sizeof(guchar));
+
+    memcpy(new_buffer->buffer, buffer1->buffer, buffer1->size);
+    memcpy(new_buffer->buffer+buffer1->size, buffer2->buffer, buffer2->size);
+
+    destroy_fcl_buf_t(buffer1);
+    destroy_fcl_buf_t(buffer2);
+
+    return new_buffer;
+}
+
+
+/**
  * Merging buffers. One buffer must be in the file and the other one not. As
  * such when a file is merged it is inserted in the file ans thus can be merged
  * with an another buffer.
@@ -353,11 +412,12 @@ static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
  * @param buffer2 : a fcl_but_t * buffer
  * @return a merged buffer
  */
-static gint merge_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
+static GList *merge_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
 {
 
     gint overlaps = 0; /** says if and how the buffers overlaps */
-
+    fcl_buf_t *new_buffer = NULL;
+    GList *buffer_list = NULL;
 
     overlaps = buffers_overlaps(buffer1, buffer2)
 
@@ -386,6 +446,85 @@ static gint merge_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
              * 1111111111
              *           22222
              */
+            if (buffer1->type == buffer2->type)
+                {
+                    new_buffer = merge_adjacent_buffers(buffer1, buffer2);
+                    g_list_prepend(buffer_list, new_buffer);
+                    return list;
+                }
+            else
+                { /** add in this order to respect the order of the buffers ! */
+                   g_list_prepend(buffer_list, buffer2);
+                   g_list_prepend(buffer_list, buffer1);
+                }
         break;
     }
+}
+
+
+
+
+/***
+ * Should insert a buffer into a sequence of buffers
+ * @param[in,out] sequence the sequence of buffers where we want to insert the
+ *                buffer.
+ * @param buffer : the buffer to be inserted
+ */
+static insert_buffer_in_sequence(GSequence *sequence, fcl_buf_t *buffer)
+{
+
+    if (sequence != NULL && buffer != NULL)
+        {
+
+        }
+    else if (buffer != NULL)
+        {
+            g_sequence_insert_sorted(sequence, buffer, cmp_offset_value, NULL);
+        }
+}
+
+
+
+
+
+
+/**
+ * Finds the previous and the next buffer in the sequence where buffer should be inserted
+ * @param sequence : the sequence of buffers
+ * @param buffer : the buffer to be inserted
+ * @param buf_prev[out] : previous buffer if any, NULL otherwise
+ * @param buf_next[out] : next buffer if any, NULL otherwise
+ */
+static find_next_and_prev_buffers(GSequence *sequence, fcl_buf_t *buffer)
+{
+    GSequenceIter *iter = NULL;
+    GSequenceIter *next = NULL;
+    GSequenceIter *prev = NULL;
+    fcl_buf_t *buf_prev = NULL;
+    fcl_buf_t *buf_next = NULL;
+
+    iter = g_sequence_search(sequence, buffer, cmp_offset_value, NULL);
+    prev = g_sequence_iter_prev(iter);
+    next = g_sequence_iter_next(iter);
+    buf_prev = g_sequence_get(prev);
+    buf_next = g_sequence_get(next);
+
+
+
+
+}
+
+
+/**
+ * Real insert function. May be a recursive function upon conditions
+ */
+static insert_buffer_in_sequence_recur(GSequence *sequence, fcl_buf_t *buffer)
+{
+    fcl_buf_t *buf_prev = NULL;
+    fcl_buf_t *buf_next = NULL;
+
+    if (sequence != NULL && buffer != NULL)
+        {
+           find_next_and_prev_buffers(sequence, buffer);
+        }
 }
