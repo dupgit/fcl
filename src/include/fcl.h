@@ -103,7 +103,7 @@ typedef struct
  *
  * @def LIBFCL_BUF_INFILE
  * Used in buffers to indicate that the buffer has already been inserted in the
- * fcl_file_t file.
+ * fcl_file_t sequence.
  *
  * @def LIBFCL_BUF_TOINS
  * This indicates that the buffer is to be inserted into the file

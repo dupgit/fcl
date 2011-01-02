@@ -39,6 +39,8 @@ static goffset get_gfile_file_size(GFile *the_file);
 static gint cmp_offset_value(gconstpointer a, gconstpointer b, gpointer user_data);
 static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2);
 
+static GList *merge_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2);
+
 /******************************************************************************/
 /********************************* Public API *********************************/
 /******************************************************************************/
@@ -405,6 +407,122 @@ static fcl_buf_t *merge_adjacent_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
 
 
 /**
+ * Merges two buffers into one by extending the first buffer and then copying
+ * them to the new buffer
+ * @param buffer1 : a fcl_but_t * buffer
+ * @param buffer2 : a fcl_but_t * buffer
+ * @return a merged buffer. buffer2 is destroyed
+ * @warning we suppose that buffer1 and buffer 2 exists, are of the same type,
+ * buffer2 begins in buffer1 and overlook it and the buffers are in the same
+ * location (memory eg LIBFCL_BUF_TOINS)
+ */
+static fcl_buf_t *merge_extend_copy_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
+{
+
+    fcl_buf_t *new_buffer = NULL;
+    gsize new_size = 0;
+
+    new_size = (buffer2->position - buffer1->position) + buffer2->size;
+
+    new_buffer = new_fcl_buf_t(buffer1->position, new_size, buffer1->type, buffer1->where);
+
+    new_buffer->buffer = (fcl_buf_t *) g_malloc0 ((new_size) * sizeof(guchar));
+
+    memcpy(new_buffer->buffer, buffer1->buffer, (buffer2->position - buffer1->position));
+    memcpy(new_buffer->buffer + (buffer2->position - buffer1->position), buffer2->buffer, buffer2->size);
+
+    destroy_fcl_buf_t(buffer1);
+    destroy_fcl_buf_t(buffer2);
+
+    return new_buffer;
+}
+
+
+/**
+ * Merges two buffers that are from the case below :
+ * 1111111111
+ *    22222
+ * @param buffer1 : a fcl_but_t * buffer
+ * @param buffer2 : a fcl_but_t * buffer
+ * @return a list of buffers (fcl_buf_t *)
+ * @warning we suppose that buffer1 and buffer 2 exists.
+ */
+static GList *merge_copy_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
+{
+    gsize size = 0;                /** Represents the size from the begining of buffer1 to the begining of buffer2 */
+    fcl_buf_t *new_buffer = NULL;  /** A new buffer */
+    GList *list = NULL;            /** The list that we will return at last */
+
+    size = (buffer2->position - buffer1->position);
+
+    switch (buffer1->type)
+        {
+            case LIBFCL_BUF_OVERWRITE:
+
+                switch (buffer2->type)
+                    {
+                        case LIBFCL_BUF_DELETE:
+                            new_buffer = new_fcl_buf_t(buffer1->position, buffer1->size - buffer2->size, buffer1->type, LIBFCL_BUF_TOINS);
+                            new_buffer->buffer = (fcl_buf_t *) g_malloc0 ((buffer1->size - buffer2->size) * sizeof(guchar));
+                            memcpy(new_buffer->buffer, buffer1->buffer, size);
+                            memcpy(new_buffer->buffer + size, buffer1->buffer + size + buffer2->size, buffer1->size - size - buffer2->size);
+                            list = g_list_prepend(list, new_buffer);
+                            return list;
+                        break;
+
+                        case LIBFCL_BUF_INSERT:
+                            if (buffer2->where == LIBFCL_BUF_INFILE)
+                                {
+                                    new_buffer = new_fcl_buf_t(buffer1->position, buffer1->size, buffer1->type, LIBFCL_BUF_TOINS);
+                                    new_buffer->buffer = (fcl_buf_t *) g_malloc0 (buffer1->size * sizeof(guchar));
+                                    memcpy(new_buffer->buffer, buffer1->buffer, buffer1->size);
+                                    g_list_prepend(list, new_buffer);
+                                }
+                            else if (buffer2->where == LIBFCL_BUF_TOINS) /* inserting 2's into 1's */
+                                {
+                                    new_buffer = new_fcl_buf_t(buffer1->position, buffer1->size + buffer2->size, buffer1->type, LIBFCL_BUF_TOINS);
+                                    new_buffer->buffer = (fcl_buf_t *) g_malloc0 ((buffer1->size + buffer2->size) * sizeof(guchar));
+                                    memcpy(new_buffer->buffer, buffer1->buffer, size);
+                                    memcpy(new_buffer->buffer + size, buffer2->buffer, buffer2->size);
+                                    memcpy(new_buffer->buffer + size + buffer2->size, buffer1->buffer, buffer1->size - (buffer2->size + size));
+                                    list = g_list_prepend(list, new_buffer);
+                                }
+                            return list;
+                        break;
+
+                        case LIBFCL_BUF_OVERWRITE:
+                            new_buffer = new_fcl_buf_t(buffer1->position, buffer1->size, buffer1->type, LIBFCL_BUF_TOINS);
+                            new_buffer->buffer = (fcl_buf_t *) g_malloc0 (buffer1->size * sizeof(guchar));
+                            memcpy(new_buffer->buffer, buffer1->buffer, buffer1->size);
+                            g_list_prepend(list, new_buffer);
+                            return list;
+                        break;
+                    }
+            break;
+
+            case LIBFCL_BUF_DELETE:
+                switch (buffer2->type)
+                    {
+                       case LIBFCL_BUF_DELETE:
+
+                    }
+
+
+            break;
+
+            case LIBFCL_BUF_INSERT:
+
+            break;
+        }
+
+
+
+    return buffer1;
+}
+
+
+
+/**
  * Merging buffers. One buffer must be in the file and the other one not. As
  * such when a file is merged it is inserted in the file ans thus can be merged
  * with an another buffer.
@@ -425,6 +543,7 @@ static GList *merge_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
     {
         case 0:
             /* The buffers does not overlaps -> no need to merge them */
+            return NULL;
         break;
 
         case 1:
@@ -432,6 +551,16 @@ static GList *merge_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
              * 1111111111
              *    2222222222
              */
+            if (buffer1->type == buffer2->type)
+                {
+                    new_buffer = merge_extend_copy_buffers(buffer1, buffer2);
+                    g_list_prepend(buffer_list, new_buffer);
+                    return buffer_list;
+                }
+            else
+                {
+
+                }
         break;
 
         case 2:
@@ -439,6 +568,16 @@ static GList *merge_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
              * 1111111111
              *    22222
              */
+            if (buffer1->type == buffer2->type)
+                {
+                    new_buffer = merge_copy_buffers(buffer1, buffer2);
+                    g_list_prepend(buffer_list, new_buffer);
+                    return buffer_list;
+                }
+            else
+                {
+                    buffer_list = merge_copy_buffers_diffs(buffer1, buffer2);
+                }
         break;
 
         case 3:
@@ -450,12 +589,13 @@ static GList *merge_buffers(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
                 {
                     new_buffer = merge_adjacent_buffers(buffer1, buffer2);
                     g_list_prepend(buffer_list, new_buffer);
-                    return list;
+                    return buffer_list;
                 }
             else
                 { /** add in this order to respect the order of the buffers ! */
                    g_list_prepend(buffer_list, buffer2);
                    g_list_prepend(buffer_list, buffer1);
+                   return buffer_list
                 }
         break;
     }
