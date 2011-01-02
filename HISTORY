@@ -1,3 +1,8 @@
+02.01.2011
+    Can't get anything that please me. Came into a dead end with buffers when
+    trying to merge two delete buffers (we have to know which one is the first
+    one in time because there is cases where the result might differ)
+
 22.09.2010
     Now I'll try to do the documentation in fcl.h and other hearder files if
     any as these are distributed with the library.

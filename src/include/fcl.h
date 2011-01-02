@@ -3,7 +3,7 @@
  *  fcl.h
  *  File Cache Library header file
  *
- *  (C) Copyright 2010 Olivier Delhomme
+ *  (C) Copyright 2010 - 2011 Olivier Delhomme
  *  e-mail : olivier.delhomme@free.fr
  *  URL    : https://gna.org/projects/fcl/
  *
@@ -98,9 +98,6 @@ typedef struct
 
 
 /**
- * @def LIBFCL_BUF_NOWHERE
- * The buffer does not know where it is !
- *
  * @def LIBFCL_BUF_INFILE
  * Used in buffers to indicate that the buffer has already been inserted in the
  * fcl_file_t sequence.
@@ -108,7 +105,6 @@ typedef struct
  * @def LIBFCL_BUF_TOINS
  * This indicates that the buffer is to be inserted into the file
  */
-#define LIBFCL_BUF_NOWHERE 3
 #define LIBFCL_BUF_INFILE 6
 #define LIBFCL_BUF_TOINS 12
 
@@ -192,6 +188,7 @@ extern void fcl_close_file(fcl_file_t *a_file);
  */
 extern fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size);
 
+
 /**
  * This function writes a previously filled fcl_buf_t * buffer structure in the
  * file.
@@ -201,6 +198,6 @@ extern fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize siz
  * @param a_buffer : The fcl_buf_t * buffer to write to the file
  * @return True If everything is ok, False Otherwise
  */
-gboolean fcl_write_bytes(fcl_file_t *a_file, fcl_buf_t *a_buffer);
+extern gboolean fcl_write_bytes(fcl_file_t *a_file, fcl_buf_t *a_buffer);
 
 #endif /* _LIBFCL_H_ */
