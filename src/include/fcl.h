@@ -87,13 +87,13 @@
  */
 typedef struct
 {
-    gchar *name;                   /**< Name for the file                */
-    gint mode;                     /** Mode in which the file was opened */
-    goffset real_size;             /**< Actual size of the file          */
-    GFile *the_file;               /**< The corresponding GFile          */
-    GFileInputStream *in_stream;   /**< Stream used for reading          */
-    GFileOutputStream *out_stream; /**< Stream used for writing          */
-    GSequence *sequence;           /**< Sequence of buffers (fcl_buf_t)  */
+    gchar *name;                   /**< Name for the file                 */
+    gint mode;                     /**< Mode in which the file was opened */
+    goffset real_size;             /**< Actual size of the file           */
+    GFile *the_file;               /**< The corresponding GFile           */
+    GFileInputStream *in_stream;   /**< Stream used for reading           */
+    GFileOutputStream *out_stream; /**< Stream used for writing           */
+    GSequence *sequence;           /**< Sequence of buffers (fcl_buf_t)   */
 } fcl_file_t;
 
 
@@ -131,11 +131,9 @@ typedef struct
  */
 typedef struct
 {
-    goffset offset;   /**< Offset of the buffer                                  */
-    gsize buf_size;   /**< Size of the buffer                                    */
-    gint8 buf_type;   /**< Type of the buffer (insert, delete, overwrite)        */
-    gint8 buf_where;  /**< Says whether the buffer is in the file already or not */
-    guchar *buffer;   /**< The buffer (if any)                                   */
+    goffset offset;  /**< Offset of the buffer (aligned with LIBFCL_BUF_SIZE)   */
+    gsize buf_size;  /**< Size of the buffer                                    */
+    guchar *data;    /**< The buffer (if any)                                   */
 } fcl_buf_t;
 
 
@@ -148,7 +146,7 @@ typedef struct
  * Default buffer size
  */
 #define LIBFCL_MAX_BUF_SIZE 1048576
-#define LIBFCL_BUF_SIZE 131072
+#define LIBFCL_BUF_SIZE 65536
 
 
 /**

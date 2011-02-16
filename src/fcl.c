@@ -147,7 +147,7 @@ fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
         }
 
     /* Defining a new buffer */
-    a_buffer = new_fcl_buf_t(position, size, LIBFCL_BUF_OVERWRITE, LIBFCL_BUF_TOINS);
+    a_buffer = new_fcl_buf_t();
 
     if (a_buffer->buffer == NULL)
         {
@@ -161,7 +161,7 @@ fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
         {
             /* direct read, no cache */
             g_seekable_seek(G_SEEKABLE(a_file->in_stream), position, G_SEEK_SET, NULL, NULL);
-            read = g_input_stream_read(G_INPUT_STREAM(a_file->in_stream), a_buffer->buffer, size, NULL, NULL);
+            read = g_input_stream_read(G_INPUT_STREAM(a_file->in_stream), a_buffer->data, size, NULL, NULL);
 
             if (read != size && read > 0)
                 {
@@ -219,17 +219,15 @@ extern gboolean fcl_write_bytes(fcl_file_t *a_file, fcl_buf_t *a_buffer)
 /**
  * Creates a new empty buffer
  */
-static fcl_buf_t *new_fcl_buf_t(goffset position, gsize size, gint8 buf_type,  gint8 buf_where)
+static fcl_buf_t *new_fcl_buf_t()
 {
     fcl_buf_t *a_buffer = NULL;  /**< the fcl_buf_t structure that will be returned */
 
     a_buffer = (fcl_buf_t *) g_malloc0 (sizeof(fcl_buf_t));
 
-    a_buffer->offset = position;
-    a_buffer->buf_size = size;
-    a_buffer->buf_type = buf_type;
-    a_buffer->buf_where = buf_where;
-    a_buffer->buffer = (guchar *) g_malloc0 (size * sizeof(guchar));
+    a_buffer->offset = 0;
+    a_buffer->buf_size = LIBFCL_BUF_SIZE;
+    a_buffer->data = (guchar *) g_malloc0 (a_buffer->buf_size * sizeof(guchar));
 
     return a_buffer;
 }
@@ -242,9 +240,9 @@ static void destroy_fcl_buf_t(fcl_buf_t *buffer)
 {
     if (buffer != NULL)
         {
-            if (buffer->buffer != NULL)
+            if (buffer->data != NULL)
                 {
-                    g_free(buffer->buffer);
+                    g_free(buffer->data);
                 }
 
             g_free(buffer);
@@ -293,6 +291,7 @@ static goffset get_gfile_file_size(GFile *the_file)
             file_info = g_file_query_info(the_file, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
             size = g_file_info_get_size(file_info);
             g_object_unref(file_info);
+
             return size;
         }
     else
