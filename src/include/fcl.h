@@ -76,6 +76,7 @@
 #define LIBFCL_MODE_WRITE 2
 #define LIBFCL_MODE_CREATE 4
 
+
 /**
  * @struct fcl_file_t
  * Structure that contains all the definitions needed by the library for a

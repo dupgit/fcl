@@ -39,6 +39,9 @@ static goffset get_gfile_file_size(GFile *the_file);
 static gint cmp_offset_value(gconstpointer a, gconstpointer b, gpointer user_data);
 static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2);
 
+static goffset buf_number(goffset position);
+static goffset position_in_buffer(goffset position);
+
 
 /******************************************************************************/
 /********************************* Public API *********************************/
@@ -216,6 +219,30 @@ extern gboolean fcl_write_bytes(fcl_file_t *a_file, fcl_buf_t *a_buffer)
 /****************************** Intern functions ******************************/
 /******************************************************************************/
 
+
+/****************************** Buffers management ****************************/
+/**
+ * Calculates the number of the buffer which depends of the position in the file
+ * @param position : position in the file
+ * @return an offset that indicates the number of the buffer. The buffer itself
+ * may then begin at LIBFCL_BUF_SIZE * returned number
+ */
+static goffset buf_number(goffset position)
+{
+    return (goffset) (position / LIBFCL_BUF_SIZE);
+}
+
+/**
+ * Returns the position in the buffer
+ * @param position : position in the file
+ * @return an offset in the buffer
+ */
+static goffset position_in_buffer(goffset position)
+{
+    return (goffset) (position - buf_number(position) * LIBFCL_BUF_SIZE);
+}
+
+
 /**
  * Creates a new empty buffer
  */
@@ -249,7 +276,7 @@ static void destroy_fcl_buf_t(fcl_buf_t *buffer)
         }
 }
 
-
+/****************************** File management *******************************/
 /**
  * Creates a new fcl_file_t structure from parameters
  * @param path : path to the file (filename included).
@@ -300,6 +327,9 @@ static goffset get_gfile_file_size(GFile *the_file)
         }
 }
 
+
+
+/****************************** Comparison functions **************************/
 
 /**
  * Compare function for the sequence. Compares buffers a and b. In fact it
