@@ -31,7 +31,7 @@
  */
 #include "fcl.h"
 
-static fcl_buf_t *new_fcl_buf_t(goffset position, gsize size, gint8 buf_type,  gint8 buf_where);
+static fcl_buf_t *new_fcl_buf_t(void);
 static void destroy_fcl_buf_t(fcl_buf_t *buffer);
 
 static fcl_file_t *new_fcl_file_t(gchar *path, gint mode);
@@ -41,6 +41,8 @@ static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2);
 
 static goffset buf_number(goffset position);
 static goffset position_in_buffer(goffset position);
+
+static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position);
 
 
 /******************************************************************************/
@@ -136,67 +138,29 @@ void fcl_close_file(fcl_file_t *a_file)
  * @param position : the position where we want to read bytes
  * @param size : the number of bytes we want to read. If this value is higher
  *               than LIBFCL_MAX_BUF_SIZE the function returns NULL
- * @return If everything is ok a filled fcl_buf_t buffer, NULL otherwise !
+ * @return If everything is ok a filled guchar *buffer, NULL otherwise !
  */
-fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
+guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size)
 {
 
-    fcl_buf_t *a_buffer = NULL;  /**< the fcl_buf_t structure that will be returned */
-    gssize read  = 0;            /**< Number of bytes effectively read              */
+    fcl_buf_t *a_buffer = NULL;  /**< the fcl_buf_t structure that will be returned    */
+    guchar *data = NULL;         /** The data that is claimed (size bytes at position) */
+    gssize read  = 0;            /**< Number of bytes effectively read                 */
 
     if (size > LIBFCL_MAX_BUF_SIZE)
         {
             return NULL;
         }
 
-    /* Defining a new buffer */
-    a_buffer = new_fcl_buf_t();
+    data = (guchar *) g_malloc0 (size * sizeof(guchar));
 
-    if (a_buffer->buffer == NULL)
-        {
-            /* A memory problem ? */
-            destroy_fcl_buf_t(a_buffer);
-            return NULL;
-        }
+    a_buffer = read_buffer_at_position(a_file, position);
 
+    data = (guchar *) g_memdup(a_buffer->data + position - a_buffer->real_offset, size);
 
-    if (a_file->mode == LIBFCL_MODE_READ)
-        {
-            /* direct read, no cache */
-            g_seekable_seek(G_SEEKABLE(a_file->in_stream), position, G_SEEK_SET, NULL, NULL);
-            read = g_input_stream_read(G_INPUT_STREAM(a_file->in_stream), a_buffer->data, size, NULL, NULL);
+    destroy_fcl_buf_t(a_buffer);
 
-            if (read != size && read > 0)
-                {
-                    /* Not everything was read (end of file ?) */
-                    a_buffer->buf_size = read;
-                }
-            else if (read < 0)
-                {
-                    /* something went wrong !! */
-                    destroy_fcl_buf_t(a_buffer);
-                    return NULL;
-                }
-
-            return a_buffer;
-        }
-    else if (a_file->mode == LIBFCL_MODE_CREATE)
-        {
-            /* all cache, no direct read */
-            destroy_fcl_buf_t(a_buffer);
-            return NULL;
-        }
-    else if (a_file->mode == LIBFCL_MODE_WRITE)
-        {
-            /* mixed mode : some are in the real file on disk and some are on the cache */
-            destroy_fcl_buf_t(a_buffer);
-            return NULL;
-        }
-    else
-        {
-            destroy_fcl_buf_t(a_buffer);
-            return NULL;
-        }
+    return data;
 }
 
 
@@ -213,6 +177,25 @@ extern gboolean fcl_write_bytes(fcl_file_t *a_file, fcl_buf_t *a_buffer)
 {
     return FALSE;
 }
+
+/*********************************** Buffers **********************************/
+
+/**
+ * Says wether the buffer structure exists and that the data buffer exists also
+ * @param a_buffer the buffer to check
+ */
+extern gboolean buffer_exists(fcl_buf_t *a_buffer)
+{
+    if (a_buffer != NULL && a_buffer->data != NULL)
+        {
+            return TRUE;
+        }
+    else
+        {
+            return FALSE;
+        }
+}
+
 
 
 /******************************************************************************/
@@ -246,15 +229,35 @@ static goffset position_in_buffer(goffset position)
 /**
  * Creates a new empty buffer
  */
-static fcl_buf_t *new_fcl_buf_t()
+static fcl_buf_t *new_fcl_buf_t(void)
 {
     fcl_buf_t *a_buffer = NULL;  /**< the fcl_buf_t structure that will be returned */
 
     a_buffer = (fcl_buf_t *) g_malloc0 (sizeof(fcl_buf_t));
 
     a_buffer->offset = 0;
-    a_buffer->buf_size = LIBFCL_BUF_SIZE;
-    a_buffer->data = (guchar *) g_malloc0 (a_buffer->buf_size * sizeof(guchar));
+    a_buffer->real_offset = 0;
+    a_buffer->size = LIBFCL_BUF_SIZE;
+    a_buffer->data = (guchar *) g_malloc0 (LIBFCL_BUF_SIZE * sizeof(guchar));
+
+    return a_buffer;
+}
+
+
+static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
+{
+    fcl_buf_t *a_buffer = NULL;  /** Buffer to be read                 */
+    gssize read  = 0;            /** Number of bytes effectively read  */
+
+    a_buffer = new_fcl_buf_t();
+
+    if (buffer_exists(a_buffer) == TRUE && a_file->sequence == NULL)
+        {
+            g_seekable_seek(G_SEEKABLE(a_file->in_stream), position, G_SEEK_SET, NULL, NULL);
+            read = g_input_stream_read(G_INPUT_STREAM(a_file->in_stream), a_buffer->data, LIBFCL_BUF_SIZE, NULL, NULL);
+
+            /* No offset correction here because the sequence is empty */
+        }
 
     return a_buffer;
 }
@@ -316,10 +319,16 @@ static goffset get_gfile_file_size(GFile *the_file)
     if (the_file != NULL)
         {
             file_info = g_file_query_info(the_file, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
-            size = g_file_info_get_size(file_info);
-            g_object_unref(file_info);
-
-            return size;
+            if (file_info != NULL)
+                {
+                    size = g_file_info_get_size(file_info);
+                    g_object_unref(file_info);
+                    return size;
+                }
+            else
+                {
+                    return -1;
+                }
         }
     else
         {
@@ -391,15 +400,15 @@ static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2)
 
     if (buffer1 != NULL && buffer2 != NULL)
         {
-            if ((buffer1->offset + buffer1->buf_size) > buffer2->offset && (buffer1->offset + buffer1->buf_size) < (buffer2->offset + buffer2->buf_size))
+            if ((buffer1->offset + buffer1->size) > buffer2->offset && (buffer1->offset + buffer1->size) < (buffer2->offset + buffer2->size))
                 {
                     return 1;
                 }
-            else if ((buffer1->offset + buffer1->buf_size) > buffer2->offset && (buffer1->offset + buffer1->buf_size) > (buffer2->offset + buffer2->buf_size))
+            else if ((buffer1->offset + buffer1->size) > buffer2->offset && (buffer1->offset + buffer1->size) > (buffer2->offset + buffer2->size))
                 {
                     return 2;
                 }
-            else if ((buffer1->offset + buffer1->buf_size) == buffer2->offset)
+            else if ((buffer1->offset + buffer1->size) == buffer2->offset)
                 {
                     return 3;
                 }

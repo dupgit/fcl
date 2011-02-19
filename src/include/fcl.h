@@ -83,8 +83,8 @@
  * file.
  *
  * The sequence in fcl_file_t is ordered. The order is done with the offset of
- * the fcl_buf_t structure. The size in that structure acts as the last part of
- * the interval.
+ * the fcl_buf_t structure. The buffers in the sequence are modified buffers
+ * only (at first at least)
  */
 typedef struct
 {
@@ -132,9 +132,10 @@ typedef struct
  */
 typedef struct
 {
-    goffset offset;  /**< Offset of the buffer (aligned with LIBFCL_BUF_SIZE)   */
-    gsize buf_size;  /**< Size of the buffer                                    */
-    guchar *data;    /**< The buffer (if any)                                   */
+    goffset offset;      /** Offset of the buffer (aligned with LIBFCL_BUF_SIZE) */
+    goffset real_offset; /** Real offset of the buffer (calculated each time)    */
+    gsize size;          /** Size of the buffer                                  */
+    guchar *data;        /** The buffer (if any)                                 */
 } fcl_buf_t;
 
 
@@ -183,9 +184,9 @@ extern void fcl_close_file(fcl_file_t *a_file);
  * @param position : the position where we want to read bytes
  * @param size : the number of bytes we want to read. If this value is higher
  *               than LIBFCL_MAX_BUF_SIZE the function returns NULL
- * @return If everything is ok a filled fcl_buf_t buffer
+ * @return If everything is ok a filled guchar *buffer, NULL otherwise !
  */
-extern fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size);
+extern guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size);
 
 
 /**
@@ -198,5 +199,14 @@ extern fcl_buf_t *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize siz
  * @return True If everything is ok, False Otherwise
  */
 extern gboolean fcl_write_bytes(fcl_file_t *a_file, fcl_buf_t *a_buffer);
+
+
+/*********************************** Buffers **********************************/
+/**
+ * Says wether the buffer structure exists and that the data buffer exists also
+ * @param a_buffer the buffer to check
+ */
+extern gboolean buffer_exists(fcl_buf_t *a_buffer);
+
 
 #endif /* _LIBFCL_H_ */

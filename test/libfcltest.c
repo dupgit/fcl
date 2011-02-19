@@ -121,16 +121,16 @@ static void test_openning_and_closing_files(void)
 static void test_openning_and_reading_files(void)
 {
     fcl_file_t *my_test_file = NULL;
-    fcl_buf_t *buffer = NULL;
+    guchar *buffer = NULL;
 
 
     /* A valid test. Should return ELF as this is the magic number for a compiled /bin/bash */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
     buffer = fcl_read_bytes(my_test_file, 1, 3);
 
-    if (buffer != NULL && buffer->buffer != NULL)
+    if (buffer != NULL)
         {
-            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : '%s'"), buffer->buf_size, buffer->offset, buffer->buffer);
+            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : '%s'"), 3, 1, buffer);
         }
     else
         {
