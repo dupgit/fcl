@@ -1,5 +1,8 @@
 libfcl RoadMap
 
+. 0.0.2
+    - Something working !
+
 . 0.1.0
     - Error handling
     - Cancellable handling

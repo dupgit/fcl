@@ -86,6 +86,7 @@ static void print_message(gboolean success, const char *format, ...)
         }
 }
 
+
 /**
  * This function tests openning files and closing them with different modes
  */
@@ -110,7 +111,6 @@ static void test_openning_and_closing_files(void)
 
     my_test_file = fcl_open_file("/tmp/test.libfcl", LIBFCL_MODE_CREATE);
     print_message(my_test_file != NULL, Q_("Openning a file in create mode."));
-
     fcl_close_file(my_test_file);
 }
 
@@ -130,7 +130,8 @@ static void test_openning_and_reading_files(void)
 
     if (buffer != NULL)
         {
-            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : '%s'"), 3, 1, buffer);
+            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), 3, 1);
+            fcl_print_data(buffer, 3, TRUE);
         }
     else
         {
@@ -138,12 +139,50 @@ static void test_openning_and_reading_files(void)
         }
     fcl_close_file(my_test_file);
 
+
     /* An Invalid test. Sould return NULL */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
     buffer = fcl_read_bytes(my_test_file, 1, LIBFCL_MAX_BUF_SIZE + 1);
     print_message(buffer == NULL, Q_("Openning a file in create mode and reading more than allowed."));
     fcl_close_file(my_test_file);
+
+
+    /* Reading data at the limits of the buffer */
+    my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
+    buffer = fcl_read_bytes(my_test_file, 65530, 25);
+    if (buffer != NULL)
+        {
+            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), 25, 65530);
+            fcl_print_data(buffer, 25, TRUE);
+        }
+    else
+        {
+            print_message(buffer != NULL, Q_("Reading 25 bytes in /bin/bash !"));
+        }
+    fcl_close_file(my_test_file);
 }
+
+
+/**
+ * This function test openning, overwriting in the file and closing them
+ */
+static void test_openning_and_overwriting_files(void)
+{
+    fcl_file_t *my_test_file = NULL;
+    guchar *buffer = NULL;
+    gboolean result = TRUE;
+
+    buffer = g_strdup_printf("ABC");
+
+    /* This test tries to overwrite a readonly file */
+    my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
+    result = fcl_overwrite_bytes(my_test_file, buffer, 1, 3);
+
+    print_message(result == FALSE, Q_("Trying to overwrite in a READ ONLY opened file"));
+
+    fcl_close_file(my_test_file);
+}
+
 
 
 int main(int argc, char **argv)
@@ -159,6 +198,8 @@ int main(int argc, char **argv)
     test_openning_and_closing_files();
 
     test_openning_and_reading_files();
+
+    test_openning_and_overwriting_files();
 
     return 0;
 }

@@ -32,9 +32,13 @@
 #ifndef _LIBFCL_H_
 #define _LIBFCL_H_
 
+#include "config.h"
+
 #include <glib.h>
 #include <gio/gio.h>
+#include <glib/gi18n-lib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "config.h"
 
@@ -190,23 +194,51 @@ extern guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size);
 
 
 /**
- * This function writes a previously filled fcl_buf_t * buffer structure in the
- * file.
- * @warning it does do writes to disk directly. It only inserts correctly the
- * buffer into the file structure.
+ * This function overwrites data in the file (size bytes of data at 'position'
+ * in the file).
+ * @warning it does do not writes to disk directly. It only overwrites correctly
+ * the data into the file structure.
  * @param a_file : the fcl_file_t file to which we want to write size bytes
- * @param a_buffer : The fcl_buf_t * buffer to write to the file
+ * @param data : data to be overwritten in the file
+ * @param position : position where to begin overwriting in the file
+ * @param size : size of the data to overwrite
  * @return True If everything is ok, False Otherwise
  */
-extern gboolean fcl_write_bytes(fcl_file_t *a_file, fcl_buf_t *a_buffer);
+extern gboolean fcl_overwrite_bytes(fcl_file_t *a_file, guchar *data, goffset position, gsize size);
 
 
+/**
+ * This function inserts data in the file (size bytes of data at 'position'
+ * in the file).
+ * @warning it does do not writes to disk directly. It only inserts correctly
+ * the data into the file structure.
+ * @param a_file : the fcl_file_t file to which we want to write size bytes
+ * @param data : data to be overwritten in the file
+ * @param position : position where to begin overwriting in the file
+ * @param size : size of the data to overwrite
+ * @return True If everything is ok, False Otherwise
+ */
+extern gboolean fcl_insert_bytes(fcl_file_t *a_file, guchar *data, goffset position, gsize size);
+
+
+
+/******************************************************************************/
 /*********************************** Buffers **********************************/
 /**
  * Says wether the buffer structure exists and that the data buffer exists also
  * @param a_buffer the buffer to check
  */
-extern gboolean buffer_exists(fcl_buf_t *a_buffer);
+extern gboolean fcl_buffer_exists(fcl_buf_t *a_buffer);
+
+
+/**
+ * Prints a buffer data (exactly 'size' bytes)
+ * @todo : print UTF8 encoded values
+ * @param data : buffer data to be printed
+ * @param size : number of bytes to prints (from data)
+ * @param EOL : prints an End Of Line if TRUE, nothing if FALSE
+ */
+extern void fcl_print_data(guchar *data, gsize size, gboolean EOL);
 
 
 #endif /* _LIBFCL_H_ */

@@ -1,3 +1,13 @@
+20.02.2011
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * Reading is ok (merly - still need to do the in between two buffers)
+     * overwriting is now at a begining
+     * Roadmap change ;-) !
+
+19.02.2011
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * Trying to do something with buffers
+
 17.02.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * heading to a buffer management style
@@ -20,7 +30,7 @@
 
 22.11.2010
    - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Changelog corrections
+     * ChangeLog corrections
      * Documentation of the API
      * Begining work on functions to enable writes to the file
 
