@@ -186,11 +186,14 @@ extern void fcl_close_file(fcl_file_t *a_file);
  * This function reads an fcl_buf_t buffer from an fcl_file_t
  * @param a_file : the fcl_file_t file from which we want to read size bytes
  * @param position : the position where we want to read bytes
- * @param size : the number of bytes we want to read. If this value is higher
- *               than LIBFCL_MAX_BUF_SIZE the function returns NULL
+ * @param[in,out] size_pointer : the number of bytes we want to read. If this
+ *                               value is higher than LIBFCL_MAX_BUF_SIZE the
+ *                               function returns NULL. The value indicates the
+ *                               real size of the data read hence, the real size
+ *                               of the returned buffer
  * @return If everything is ok a filled guchar *buffer, NULL otherwise !
  */
-extern guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize size);
+extern guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer);
 
 
 /**

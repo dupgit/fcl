@@ -97,21 +97,26 @@ static void test_openning_and_closing_files(void)
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
     if (my_test_file != NULL)
         {
-            print_message(my_test_file != NULL, Q_("Openning a file in read mode (%Ld)"), my_test_file->real_size);
+            print_message(my_test_file != NULL, Q_("Opening a file in read mode (%Ld)"), my_test_file->real_size);
         }
     else
         {
-            print_message(my_test_file != NULL, Q_("Openning a file in read mode."));
+            print_message(my_test_file != NULL, Q_("Opening a file in read mode."));
         }
     fcl_close_file(my_test_file);
 
     my_test_file = fcl_open_file("/tmp/test.libfcl", LIBFCL_MODE_WRITE);
-    print_message(my_test_file != NULL, Q_("Openning a file in write mode."));
+    print_message(my_test_file != NULL, Q_("Opening a file in write mode."));
     fcl_close_file(my_test_file);
 
     my_test_file = fcl_open_file("/tmp/test.libfcl", LIBFCL_MODE_CREATE);
-    print_message(my_test_file != NULL, Q_("Openning a file in create mode."));
+    print_message(my_test_file != NULL, Q_("Opening a file in create mode."));
     fcl_close_file(my_test_file);
+
+    my_test_file = fcl_open_file("/tmp/test_doesnotexists", LIBFCL_MODE_READ);
+    print_message(my_test_file == NULL, Q_("Opening a file that does not exists in read only mode."));
+    fcl_close_file(my_test_file);
+
 }
 
 
@@ -122,15 +127,17 @@ static void test_openning_and_reading_files(void)
 {
     fcl_file_t *my_test_file = NULL;
     guchar *buffer = NULL;
+    gsize size = 0;
 
 
     /* A valid test. Should return ELF as this is the magic number for a compiled /bin/bash */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
-    buffer = fcl_read_bytes(my_test_file, 1, 3);
+    size = 3;
+    buffer = fcl_read_bytes(my_test_file, 1, &size);
 
     if (buffer != NULL)
         {
-            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), 3, 1);
+            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), size, 1);
             fcl_print_data(buffer, 3, TRUE);
         }
     else
@@ -142,17 +149,19 @@ static void test_openning_and_reading_files(void)
 
     /* An Invalid test. Sould return NULL */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
-    buffer = fcl_read_bytes(my_test_file, 1, LIBFCL_MAX_BUF_SIZE + 1);
+    size = LIBFCL_MAX_BUF_SIZE + 1;
+    buffer = fcl_read_bytes(my_test_file, 1, &size);
     print_message(buffer == NULL, Q_("Openning a file in create mode and reading more than allowed."));
     fcl_close_file(my_test_file);
 
 
     /* Reading data at the limits of the buffer */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
-    buffer = fcl_read_bytes(my_test_file, 65530, 25);
+    size = 25;
+    buffer = fcl_read_bytes(my_test_file, 65530, &size);
     if (buffer != NULL)
         {
-            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), 25, 65530);
+            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), size, 65530);
             fcl_print_data(buffer, 25, TRUE);
         }
     else
@@ -160,6 +169,38 @@ static void test_openning_and_reading_files(void)
             print_message(buffer != NULL, Q_("Reading 25 bytes in /bin/bash !"));
         }
     fcl_close_file(my_test_file);
+
+    /* Reading data at the limits of the file */
+    my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
+    size = 16384;
+    buffer = fcl_read_bytes(my_test_file, my_test_file->real_size - 4336, &size);
+    if (buffer != NULL)
+        {
+            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), size, my_test_file->real_size - 4336);
+            fcl_print_data(buffer, size, TRUE);
+        }
+    else
+        {
+            print_message(buffer != NULL, Q_("Reading 25 bytes in /bin/bash !"));
+        }
+    fcl_close_file(my_test_file);
+
+
+    /* Reading data beyond the limits of the file */
+    my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
+    size = 16384;
+    buffer = fcl_read_bytes(my_test_file, my_test_file->real_size + 4336, &size);
+    if (buffer != NULL)
+        {
+            print_message(buffer == NULL, Q_("Read (%d bytes at %d) : "), size, my_test_file->real_size + 4336);
+            fcl_print_data(buffer, size, TRUE);
+        }
+    else
+        {
+            print_message(buffer == NULL, Q_("Reading %ld bytes in /bin/bash ! at %ld"), size, my_test_file->real_size + 4336 );
+        }
+    fcl_close_file(my_test_file);
+
 }
 
 
@@ -170,9 +211,11 @@ static void test_openning_and_overwriting_files(void)
 {
     fcl_file_t *my_test_file = NULL;
     guchar *buffer = NULL;
+    guchar *data = NULL;
     gboolean result = TRUE;
+    gsize size = 0;
 
-    buffer = g_strdup_printf("ABC");
+    buffer = (guchar *) g_strdup_printf("ABC");
 
     /* This test tries to overwrite a readonly file */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
@@ -181,6 +224,23 @@ static void test_openning_and_overwriting_files(void)
     print_message(result == FALSE, Q_("Trying to overwrite in a READ ONLY opened file"));
 
     fcl_close_file(my_test_file);
+
+
+    /* Testing to overwrite into a file (without saving) */
+    my_test_file = fcl_open_file("/home/dup/.bashrc", LIBFCL_MODE_WRITE);
+    result = fcl_overwrite_bytes(my_test_file, buffer, 2, 3);
+
+    print_message(result == TRUE, Q_("Trying to overwrite in an opened file"));
+
+    /* Verifiying that it worked out */
+    size = 10;
+    data = fcl_read_bytes(my_test_file, 0, &size);
+    fcl_print_data(data, size, TRUE);
+
+    fcl_close_file(my_test_file);
+
+    g_free(buffer);
+
 }
 
 

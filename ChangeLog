@@ -1,3 +1,8 @@
+26.02.2011
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * Now reading seems ok, even when reading at the end of a file
+     * Basic overwriting seems to work (need to do inserts before test it more)
+
 20.02.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Reading is ok (merly - still need to do the in between two buffers)
