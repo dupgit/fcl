@@ -277,6 +277,7 @@ extern gboolean fcl_insert_bytes(fcl_file_t *a_file, guchar *data, goffset posit
 {
     if (a_file->mode != LIBFCL_MODE_READ)
         {
+            inserts_data_at_position(a_file, data, position, size);
             return TRUE;
         }
     else
@@ -654,18 +655,34 @@ static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset
  */
 static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize size)
 {
-    fcl_buf_t *a_buffer = NULL;  /** Buffer to be overwritten  */
-    goffset buf_position = 0;    /** Position in the buffer    */
+    fcl_buf_t *a_buffer = NULL;  /** Buffer to be overwritten                 */
+    goffset buf_position = 0;    /** Position in the buffer                   */
+    guchar *new_data = NULL;         /** new buffer that will replace the old one */
+    gsize new_size = 0;          /** new size for the buffer                  */
 
     a_buffer = read_buffer_at_position(a_file, position);
 
     buf_position = (position - a_buffer->real_offset);
 
-
-
-    if (a_buffer->in_seq == FALSE)
+    if (buf_position >= 0 && buf_position <= a_buffer->size)
         {
-            destroy_fcl_buf_t((gpointer) a_buffer);
+            new_size = size + a_buffer->size;
+            new_data = (guchar *) g_malloc0(new_size * sizeof(guchar));
+
+            memcpy(new_data, a_buffer->data, buf_position);
+            memcpy(new_data + buf_position, data, size);
+            memcpy(new_data + buf_position + size, a_buffer->data + buf_position, a_buffer->size - buf_position);
+
+            fcl_print_data(new_data, new_size, TRUE);
+
+            g_free(a_buffer->data);
+            a_buffer->data = new_data;
+            a_buffer->size = new_size;
+
+            if (a_buffer->in_seq == FALSE)
+                {
+                    insert_buffer_in_sequence(a_file, a_buffer);
+                }
         }
 }
 

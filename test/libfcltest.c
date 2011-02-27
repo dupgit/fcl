@@ -246,6 +246,33 @@ static void test_openning_and_overwriting_files(void)
 }
 
 
+/**
+ * This function test openning, overwriting in the file and closing them
+ */
+static void test_openning_and_inserting_in_files(void)
+{
+    fcl_file_t *my_test_file = NULL;
+    guchar *buffer = NULL;
+    guchar *data = NULL;
+    gboolean result = TRUE;
+    gsize size = 0;
+
+    buffer = (guchar *) g_strdup_printf("Is this inserted in the file ?");
+
+    my_test_file = fcl_open_file("/tmp/createme", LIBFCL_MODE_CREATE);
+    print_message(my_test_file != NULL, Q_("Opening a file in create mode."));
+
+    /* Inserting bytes */
+    fcl_insert_bytes(my_test_file, buffer, 0, 30);
+
+    /* Verifying this */
+    size = 200;
+    data = fcl_read_bytes(my_test_file, 0, &size);
+    fcl_print_data(data, size, TRUE);
+
+    fcl_close_file(my_test_file);
+}
+
 
 int main(int argc, char **argv)
 {
@@ -258,10 +285,16 @@ int main(int argc, char **argv)
 
     /**** Tests ****/
     test_openning_and_closing_files();
+    fprintf(stdout,"\n\n");
 
     test_openning_and_reading_files();
+    fprintf(stdout,"\n\n");
 
     test_openning_and_overwriting_files();
+    fprintf(stdout,"\n\n");
+
+    test_openning_and_inserting_in_files();
+    fprintf(stdout,"\n\n");
 
     return 0;
 }
