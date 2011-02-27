@@ -1,7 +1,15 @@
+27.02.2011
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * Bug corrections.
+     * Freeying memory.
+     * Real size of the read buffer (or overwritten buffer).
+     * Debug option to the configure script
+
 26.02.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Now reading seems ok, even when reading at the end of a file
-     * Basic overwriting seems to work (need to do inserts before test it more)
+     * Basic overwriting seems to work (need to do inserts to be able to test
+       it more)
 
 20.02.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>

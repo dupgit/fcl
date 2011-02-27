@@ -140,6 +140,7 @@ typedef struct
     goffset real_offset; /** Real offset of the buffer (calculated each time)    */
     gsize size;          /** Size of the buffer                                  */
     guchar *data;        /** The buffer (if any)                                 */
+    gboolean in_seq;     /** Says wether the buffer is in the sequence or not    */
 } fcl_buf_t;
 
 
@@ -204,10 +205,11 @@ extern guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_
  * @param a_file : the fcl_file_t file to which we want to write size bytes
  * @param data : data to be overwritten in the file
  * @param position : position where to begin overwriting in the file
- * @param size : size of the data to overwrite
+ * @param[in,out] size_pointer : size of the data to overwrite. returns the real
+ *                               size of the data overwritten.
  * @return True If everything is ok, False Otherwise
  */
-extern gboolean fcl_overwrite_bytes(fcl_file_t *a_file, guchar *data, goffset position, gsize size);
+extern gboolean fcl_overwrite_bytes(fcl_file_t *a_file, guchar *data, goffset position, gsize *size_pointer);
 
 
 /**

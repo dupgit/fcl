@@ -219,7 +219,8 @@ static void test_openning_and_overwriting_files(void)
 
     /* This test tries to overwrite a readonly file */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
-    result = fcl_overwrite_bytes(my_test_file, buffer, 1, 3);
+    size = 3;
+    result = fcl_overwrite_bytes(my_test_file, buffer, 1, &size);
 
     print_message(result == FALSE, Q_("Trying to overwrite in a READ ONLY opened file"));
 
@@ -228,9 +229,10 @@ static void test_openning_and_overwriting_files(void)
 
     /* Testing to overwrite into a file (without saving) */
     my_test_file = fcl_open_file("/home/dup/.bashrc", LIBFCL_MODE_WRITE);
-    result = fcl_overwrite_bytes(my_test_file, buffer, 2, 3);
+    size = 3;
+    result = fcl_overwrite_bytes(my_test_file, buffer, 2, &size);
 
-    print_message(result == TRUE, Q_("Trying to overwrite in an opened file"));
+    print_message(result == TRUE, Q_("Trying to overwrite in an opened file (%ld bytes)"), size);
 
     /* Verifiying that it worked out */
     size = 10;

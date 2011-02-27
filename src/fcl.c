@@ -31,8 +31,11 @@
  */
 #include "fcl.h"
 
+/** Private intern functions (please have a look at fcl.h for the public API
+ *  functions definitions)
+ */
 static fcl_buf_t *new_fcl_buf_t(void);
-static void destroy_fcl_buf_t(fcl_buf_t *buffer);
+static void destroy_fcl_buf_t(gpointer data);
 
 static fcl_file_t *new_fcl_file_t(gchar *path, gint mode);
 static goffset get_gfile_file_size(GFile *the_file);
@@ -43,11 +46,13 @@ static goffset buf_number(goffset position);
 static goffset position_in_buffer(goffset position);
 
 static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position);
-static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize size);
+static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize *size_pointer);
 static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize size);
 
 static void insert_buffer_in_sequence(fcl_file_t *a_file, fcl_buf_t *a_buffer);
 static gboolean is_in_sequence(GSequence *seq, GSequenceIter *begin, GSequenceIter *end, fcl_buf_t *a_buffer);
+
+static void print_message(const char *format, ...);
 
 
 /******************************************************************************/
@@ -113,27 +118,34 @@ void fcl_close_file(fcl_file_t *a_file)
 {
     g_free(a_file->name);
 
+
     if (a_file->in_stream != NULL)
         {
+            print_message("Closing the input stream \n");
             g_input_stream_close(G_INPUT_STREAM(a_file->in_stream), NULL, NULL);
         }
 
     if (a_file->out_stream != NULL)
         {
+            print_message("Closing the output stream\n");
             g_output_stream_close(G_OUTPUT_STREAM(a_file->out_stream), NULL, NULL);
         }
 
     if (a_file->the_file != NULL)
         {
+            print_message("Unreference the file\n");
             g_object_unref(a_file->the_file);
         }
 
     if (a_file->sequence != NULL)
         {
+            print_message("Freeing the sequence\n");
             g_sequence_free(a_file->sequence);
         }
 
     g_free(a_file);
+
+    print_message("The file is closed.\n");
 }
 
 
@@ -160,8 +172,7 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
 
     size = *size_pointer;
 
-    /** @todo remove this print */
-    fprintf(stdout, "fcl_read_bytes(%p, %ld, %ld)\n", a_file, position, size);
+    print_message("fcl_read_bytes(%p, %ld, %ld)\n", a_file, position, size);
 
     if (size > LIBFCL_MAX_BUF_SIZE)
         {
@@ -174,16 +185,14 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
 
     offset = (position - a_buffer->real_offset);
 
-    /** @todo remove this print */
-    fprintf(stdout, "offset : %ld; size : %ld\n", offset, size);
+    print_message("offset : %ld; size : %ld\n", offset, size);
 
     if (offset >= 0 && offset <= a_buffer->size)
         {
             if (a_buffer->size >= offset + size) /* The claimed data is all in the buffer */
                 {
                     data = (guchar *) g_memdup(a_buffer->data + offset, size);
-                    /** @todo remove this print */
-                    fprintf(stdout, "size : %ld\n", size);
+                    print_message("size : %ld\n", size);
                 }
             else if (a_buffer->size != LIBFCL_BUF_SIZE) /* Not all the buffer was filled */
                 {
@@ -200,8 +209,7 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
                     real_size = size - (a_buffer->size - offset);
                     next_data = fcl_read_bytes(a_file, a_buffer->real_offset + a_buffer->size, &real_size);
                     size = real_size + (a_buffer->size - offset);
-                    /** @todo remove this print */
-                    fprintf(stdout, "size : %ld; real_size : %ld\n", size, real_size);
+                    print_message("size : %ld; real_size : %ld\n", size, real_size);
                     memcpy(data + (a_buffer->size - offset), next_data, real_size);
                 }
         }
@@ -210,7 +218,10 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
             data = NULL;
         }
 
-    destroy_fcl_buf_t(a_buffer);
+    if (a_buffer->in_seq == FALSE)
+        {
+            destroy_fcl_buf_t((gpointer) a_buffer);
+        }
 
     *size_pointer = size;
 
@@ -229,11 +240,18 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
  * @param size : size of the data to overwrite
  * @return True If everything is ok, False Otherwise
  */
-extern gboolean fcl_overwrite_bytes(fcl_file_t *a_file, guchar *data, goffset position, gsize size)
+extern gboolean fcl_overwrite_bytes(fcl_file_t *a_file, guchar *data, goffset position, gsize *size_pointer)
 {
+    gsize size = 0;
+
     if (a_file->mode != LIBFCL_MODE_READ)
         {
-            overwrite_data_at_position(a_file, data, position, size);
+            size = *size_pointer;
+
+            overwrite_data_at_position(a_file, data, position, &size);
+
+            *size_pointer = size;
+
             return TRUE;
         }
     else
@@ -323,10 +341,28 @@ extern void fcl_print_data(guchar *data, gsize size, gboolean EOL)
 }
 
 
-
 /******************************************************************************/
 /****************************** Intern functions ******************************/
 /******************************************************************************/
+
+/**
+ * Prints a message in case we are in debug stage
+ * @param format the message to print in a vprintf format
+ * @param ... the va_list : list of arguments to fill in the format
+ */
+static void print_message(const char *format, ...)
+{
+    va_list args;
+    gchar *str = NULL;
+
+    if (ENABLE_DEBUG)
+        {
+            va_start(args, format);
+            str = g_strdup_vprintf(format, args);
+            va_end(args);
+            fprintf(stdout, "%s", str);
+        }
+}
 
 
 /****************************** Buffers management ****************************/
@@ -365,9 +401,11 @@ static fcl_buf_t *new_fcl_buf_t(void)
     a_buffer->real_offset = 0;
     a_buffer->size = LIBFCL_BUF_SIZE;
     a_buffer->data = (guchar *) g_malloc0 (LIBFCL_BUF_SIZE * sizeof(guchar));
+    a_buffer->in_seq = FALSE;
 
     return a_buffer;
 }
+
 
 /**
  * This function cares to calculate the buffer->real_offset and all the values
@@ -385,8 +423,7 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
     fcl_buf_t * seq_buf = NULL;
     gboolean ok = TRUE;
 
-    /** @todo remove this print */
-    fprintf(stdout, "read_buffer_at_position(%p, %ld) : ", a_file, position);
+    print_message("read_buffer_at_position(%p, %ld) : ", a_file, position);
 
     if (a_file->sequence == NULL)
         {
@@ -402,10 +439,9 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
             g_seekable_seek(G_SEEKABLE(a_file->in_stream), a_buffer->real_offset, G_SEEK_SET, NULL, NULL);
             read = g_input_stream_read(G_INPUT_STREAM(a_file->in_stream), a_buffer->data, LIBFCL_BUF_SIZE, NULL, NULL);
 
-            a_buffer->size = read; /* size of what was read (it may be less than LIBFCL_BUF_SIZE */
+            a_buffer->size = read; /* size of what was read (it may be less than LIBFCL_BUF_SIZE) */
 
-            /** @todo remove this print */
-            fprintf(stdout, "%ld", read);
+            print_message("%ld", read);
         }
     else
         {
@@ -437,12 +473,12 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
                         }
                 }
 
-            fprintf(stdout, "\nreal_position : %ld; seq_buf->size : %ld; position : %ld\n", real_position,  seq_buf->size, position);
+            print_message("\nreal_position : %ld; seq_buf->size : %ld; position : %ld\n", real_position,  seq_buf->size, position);
 
             if ((real_position + seq_buf->size) > position)
                 {
                     /* buffer exists */
-                    fprintf(stdout, "%ld == %ld ?", seq_buf->real_offset, real_position);
+                    print_message("%ld == %ld ?", seq_buf->real_offset, real_position);
                     seq_buf->real_offset = real_position;
                     a_buffer = seq_buf;
                 }
@@ -458,13 +494,11 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
                     read = g_input_stream_read(G_INPUT_STREAM(a_file->in_stream), a_buffer->data, LIBFCL_BUF_SIZE, NULL, NULL);
 
                     a_buffer->size = read;
-
                 }
         }
-    /** @todo remove this print */
-    fprintf(stdout, "\n");
+    print_message("\n");
 
-    fprintf(stdout, "offset \t: %ld\nreal_offset \t: %ld\nsize \t: %ld\n", a_buffer->offset, a_buffer->real_offset, a_buffer->size);
+    print_message("offset \t: %ld\nreal_offset \t: %ld\nsize \t: %ld\n", a_buffer->offset, a_buffer->real_offset, a_buffer->size);
 
 
     return a_buffer;
@@ -537,8 +571,10 @@ static void insert_buffer_in_sequence(fcl_file_t *a_file, fcl_buf_t *a_buffer)
         {
             if (a_file->sequence == NULL)
                 {
-                    a_file->sequence = g_sequence_new(NULL);
+                    a_buffer->in_seq = TRUE;
+                    a_file->sequence = g_sequence_new(destroy_fcl_buf_t);
                     g_sequence_append(a_file->sequence, a_buffer);
+                    print_message("Inserted buffer : %p\n", a_buffer);
                 }
             else
                 {
@@ -547,7 +583,9 @@ static void insert_buffer_in_sequence(fcl_file_t *a_file, fcl_buf_t *a_buffer)
 
                     if (is_in_sequence(a_file->sequence, begin, end, a_buffer) == FALSE)
                         {
+                            a_buffer->in_seq = TRUE;
                             g_sequence_insert_sorted(a_file->sequence, a_buffer, cmp_offset_value, NULL);
+                            print_message("Inserted buffer : %p\n", a_buffer);
                         }
                 }
         }
@@ -558,23 +596,35 @@ static void insert_buffer_in_sequence(fcl_file_t *a_file, fcl_buf_t *a_buffer)
  * Overwite a buffer in place
  * @warning this function is recursive
  */
-static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize size)
+static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize *size_pointer)
 {
     fcl_buf_t *a_buffer = NULL;  /** Buffer to be overwritten  */
     goffset buf_position = 0;    /** Position in the buffer    */
+    gsize reste = 0;
+    gsize size = 0;
 
 
-    fprintf(stdout, "overwrite_data_at_position(%p, %p, %ld, %ld)\n", a_file, data, position, size);
+    size = *size_pointer;
+
+    print_message("overwrite_data_at_position(%p, %p, %ld, %ld)\n", a_file, data, position, size);
 
     a_buffer = read_buffer_at_position(a_file, position);
 
     buf_position = (position - a_buffer->real_offset);
-    fprintf(stdout, "buf_position : %ld (position : %ld, real_offset : %ld)\n", buf_position);
+    print_message("buf_position : %ld (position : %ld, real_offset : %ld)\n", buf_position, position, a_buffer->real_offset);
 
     if (buf_position >= 0 && (buf_position + size) <= a_buffer->size)
         {
             memcpy(a_buffer->data + buf_position, data, size);
             insert_buffer_in_sequence(a_file, a_buffer);
+        }
+    else if (buf_position + size > a_buffer->size && a_buffer->size < LIBFCL_BUF_SIZE)
+        {
+            fprintf(stderr, Q_("Overwritting outside of the file is not possible !\n"));
+            memcpy(a_buffer->data + buf_position, data, a_buffer->size - buf_position);
+            insert_buffer_in_sequence(a_file, a_buffer);
+            size = a_buffer->size - buf_position;
+
         }
     else if (buf_position + size > a_buffer->size)
         {
@@ -583,7 +633,17 @@ static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset
             insert_buffer_in_sequence(a_file, a_buffer);
 
             /* so overwrite the next buffer ! */
-            overwrite_data_at_position(a_file, data + (a_buffer->size - buf_position), 0, size - (a_buffer->size - buf_position));
+            reste = size - (a_buffer->size - buf_position);
+            overwrite_data_at_position(a_file, data + (a_buffer->size - buf_position), 0, &reste);
+
+            size = a_buffer->size - buf_position + reste;
+        }
+
+    *size_pointer = size;
+
+    if (a_buffer->in_seq == FALSE)
+        {
+            destroy_fcl_buf_t((gpointer) a_buffer);
         }
 }
 
@@ -602,17 +662,24 @@ static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset p
     buf_position = (position - a_buffer->real_offset);
 
 
-}
 
+    if (a_buffer->in_seq == FALSE)
+        {
+            destroy_fcl_buf_t((gpointer) a_buffer);
+        }
+}
 
 
 /**
  * Destroys a buffer (and the data in it !)
  */
-static void destroy_fcl_buf_t(fcl_buf_t *buffer)
+static void destroy_fcl_buf_t(gpointer data)
 {
+    fcl_buf_t *buffer = (fcl_buf_t *) data ;
+
     if (buffer != NULL)
         {
+            print_message("Destroyed buffer : %p\n", buffer);
             if (buffer->data != NULL)
                 {
                     g_free(buffer->data);
@@ -622,8 +689,8 @@ static void destroy_fcl_buf_t(fcl_buf_t *buffer)
         }
 }
 
+
 /****************************** File management *******************************/
-/** @todo have a destroy function to the GSequence */
 
 /**
  * Creates a new fcl_file_t structure from parameters

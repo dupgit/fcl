@@ -109,6 +109,31 @@ case $host in
     ;;
 esac
 
+dnl **************************************************
+dnl * ./configure options                            *
+dnl **************************************************
+
+dnl **************************************************
+dnl * debug option                                   *
+dnl * At this early stage debugging IS activated     *
+dnl * by default (change in the test below)          *
+dnl **************************************************
+AC_ARG_ENABLE([debug],
+     [  --enable-debug    Turn on debugging],
+     [case "${enableval}" in
+       yes) debug=true ;;
+       no)  debug=false ;;
+       *) AC_MSG_ERROR([bad value ${enableval} for --enable-debug]) ;;
+     esac],[debug=false])
+if test x$debug = xtrue
+then
+ AC_DEFINE_UNQUOTED(ENABLE_DEBUG, TRUE, [Debug mode On])
+ CFLAGS="$CFLAGS -ggdb"
+else
+ AC_DEFINE_UNQUOTED(ENABLE_DEBUG, TRUE, [Debug mode Off])
+ CFLAGS="$CFLAGS -ggdb"
+fi
+
 AC_SUBST(LDFLAGS)
 AC_SUBST(CFLAGS)
 AC_SUBST(GLIB2_CFLAGS)
