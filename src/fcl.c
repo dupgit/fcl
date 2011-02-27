@@ -174,10 +174,6 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
 
     print_message("fcl_read_bytes(%p, %ld, %ld)\n", a_file, position, size);
 
-    if (size > LIBFCL_MAX_BUF_SIZE)
-        {
-            return NULL;
-        }
 
     data = (guchar *) g_malloc0 (size * sizeof(guchar));
 
@@ -205,6 +201,7 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
             else
                 {
                     /* claimed data is located in two different buffers at least */
+                    /** @todo may be a bug here in memory allocations */
                     data = (guchar *) g_memdup(a_buffer->data + offset, a_buffer->size - offset);
                     real_size = size - (a_buffer->size - offset);
                     next_data = fcl_read_bytes(a_file, a_buffer->real_offset + a_buffer->size, &real_size);

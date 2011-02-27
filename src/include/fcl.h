@@ -147,7 +147,8 @@ typedef struct
 /**
  * @def LIBFCL_MAX_BUF_SIZE
  * Maximum buffer size that the library handles (This value is 2^20 as this was
- * the total amount of memory that my Atari 1040 ST had !)
+ * the total amount of memory that my Atari 1040 ST had !). I don't know if this
+ * is usefull in any manner.
  *
  * @def LIBFCL_BUF_SIZE
  * Default buffer size
