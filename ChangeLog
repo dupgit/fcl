@@ -1,9 +1,14 @@
+28.02.2011
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * Memory allocation bug corrected
+     * "Fancier" libfcltest output
+
 27.02.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Bug corrections.
      * Freeying memory.
      * Real size of the read buffer (or overwritten buffer).
-     * Debug option to the configure script
+     * Debug option to the configure script.
      * Killing max buffer size limit.
 
 26.02.2011

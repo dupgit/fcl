@@ -147,11 +147,13 @@ static void test_openning_and_reading_files(void)
     fcl_close_file(my_test_file);
 
 
-    /* An Invalid test. Sould return NULL */
+    /* This test will not return NULL anymore because I deleted the limit for
+     * the global buffer (ie what may be claimed by an application
+     */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
     size = LIBFCL_MAX_BUF_SIZE + 1;
     buffer = fcl_read_bytes(my_test_file, 1, &size);
-    print_message(buffer == NULL, Q_("Openning a file in create mode and reading more than allowed."));
+    print_message(buffer != NULL, Q_("Openning a file in create mode and reading more than allowed."));
     fcl_close_file(my_test_file);
 
 
@@ -284,15 +286,19 @@ int main(int argc, char **argv)
     libfcl_initialize();
 
     /**** Tests ****/
+    fprintf(stdout, Q_("Testing opening and closing files :\n"));
     test_openning_and_closing_files();
     fprintf(stdout,"\n\n");
 
+    fprintf(stdout, Q_("Testing opening and reading files :\n"));
     test_openning_and_reading_files();
     fprintf(stdout,"\n\n");
 
+    fprintf(stdout, Q_("Testing opening and overwritting files :\n"));
     test_openning_and_overwriting_files();
     fprintf(stdout,"\n\n");
 
+    fprintf(stdout, Q_("Testing opening and inserting in files :\n"));
     test_openning_and_inserting_in_files();
     fprintf(stdout,"\n\n");
 

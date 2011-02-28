@@ -166,6 +166,7 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
     fcl_buf_t *a_buffer = NULL;  /** the fcl_buf_t structure that will be returned     */
     guchar *data = NULL;         /** The data that is claimed (size bytes at position) */
     guchar *next_data = NULL;
+    guchar *new_data = NULL;
     goffset offset = 0;          /** The offset in the data buffer                     */
     gsize real_size = 0;         /** Real size returned by the recursive call          */
     gsize size = 0;
@@ -187,6 +188,7 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
         {
             if (a_buffer->size >= offset + size) /* The claimed data is all in the buffer */
                 {
+                    print_message("1. g_mem_dup(%p, %ld)\n", a_buffer->data + offset, size);
                     data = (guchar *) g_memdup(a_buffer->data + offset, size);
                     print_message("size : %ld\n", size);
                 }
@@ -195,6 +197,7 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
                     size = a_buffer->size - offset;
                     if (size  > 0)
                         {
+                            print_message("2. g_mem_dup(%p, %ld)\n", a_buffer->data + offset, size);
                             data = (guchar *) g_memdup(a_buffer->data + offset, size);
                         }
                 }
@@ -202,12 +205,22 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
                 {
                     /* claimed data is located in two different buffers at least */
                     /** @todo may be a bug here in memory allocations */
-                    data = (guchar *) g_memdup(a_buffer->data + offset, a_buffer->size - offset);
+                    print_message("3. g_mem_dup(%p, %ld)\n", a_buffer->data + offset, a_buffer->size - offset);
+
+                    new_data = (guchar *) g_memdup(a_buffer->data + offset, a_buffer->size - offset);
+
                     real_size = size - (a_buffer->size - offset);
                     next_data = fcl_read_bytes(a_file, a_buffer->real_offset + a_buffer->size, &real_size);
+
                     size = real_size + (a_buffer->size - offset);
                     print_message("size : %ld; real_size : %ld\n", size, real_size);
+
+                    data = (guchar *) g_malloc0(size * sizeof(guchar));
+                    memcpy(data, new_data, a_buffer->size - offset);
                     memcpy(data + (a_buffer->size - offset), next_data, real_size);
+
+                    g_free(new_data);
+                    g_free(next_data);
                 }
         }
     else
