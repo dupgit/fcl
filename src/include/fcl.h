@@ -208,7 +208,7 @@ extern guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_
  * @param position : position where to begin overwriting in the file
  * @param[in,out] size_pointer : size of the data to overwrite. returns the real
  *                               size of the data overwritten.
- * @return True If everything is ok, False Otherwise
+ * @return True If everything is ok, false otherwise
  */
 extern gboolean fcl_overwrite_bytes(fcl_file_t *a_file, guchar *data, goffset position, gsize *size_pointer);
 
@@ -221,11 +221,23 @@ extern gboolean fcl_overwrite_bytes(fcl_file_t *a_file, guchar *data, goffset po
  * @param a_file : the fcl_file_t file to which we want to write size bytes
  * @param data : data to be overwritten in the file
  * @param position : position where to begin overwriting in the file
- * @param size : size of the data to overwrite
- * @return True If everything is ok, False Otherwise
+ * @param size : size of the data to overwrite. As the insertion should never
+ *               be less than size (or 0) one may consider that if the function
+ *               retuned TRUE, size bytes were effectively inserted.
+ * @return True If everything is ok, false otherwise
  */
 extern gboolean fcl_insert_bytes(fcl_file_t *a_file, guchar *data, goffset position, gsize size);
 
+
+/**
+ * Deletes bytes in the buffers.
+ * @param a_file : the fcl_file_t file to which we want to deleted size bytes
+ * @param position : position where to delete size_pointer bytes in the file
+ * @param[in,out] size_pointer : number of bytes to be deleted. Returns the
+ * number of bytes effectively deleted (may be less than requested)
+ * @return True if everything is ok, false otherwise.
+ */
+extern gboolean fcl_delete_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer);
 
 
 /******************************************************************************/

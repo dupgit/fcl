@@ -140,7 +140,7 @@ void fcl_close_file(fcl_file_t *a_file)
     if (a_file->sequence != NULL)
         {
             print_message("Freeing the sequence\n");
-            g_sequence_free(a_file->sequence);
+            g_sequence_free(a_file->sequence);   /* Here the buffers in the sequence are freed with destroy_fcl_buf_t */
         }
 
     g_free(a_file);
@@ -169,7 +169,7 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
     guchar *new_data = NULL;
     goffset offset = 0;          /** The offset in the data buffer                     */
     gsize real_size = 0;         /** Real size returned by the recursive call          */
-    gsize size = 0;
+    gsize size = 0;              /** Because I do not like *size_pointer everywhere !  */
 
     size = *size_pointer;
 
@@ -248,11 +248,11 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
  * @param data : data to be overwritten in the file
  * @param position : position where to begin overwriting in the file
  * @param size : size of the data to overwrite
- * @return True If everything is ok, False Otherwise
+ * @return True If everything is ok, false otherwise
  */
 extern gboolean fcl_overwrite_bytes(fcl_file_t *a_file, guchar *data, goffset position, gsize *size_pointer)
 {
-    gsize size = 0;
+    gsize size = 0;  /** Because I do not like *size_pointer everywhere !  */
 
     if (a_file->mode != LIBFCL_MODE_READ)
         {
@@ -280,8 +280,10 @@ extern gboolean fcl_overwrite_bytes(fcl_file_t *a_file, guchar *data, goffset po
  * @param a_file : the fcl_file_t file to which we want to write size bytes
  * @param data : data to be overwritten in the file
  * @param position : position where to begin overwriting in the file
- * @param size : size of the data to overwrite
- * @return True If everything is ok, False Otherwise
+ * @param size : size of the data to overwrite. As the insertion should never
+ *               be less than size (or 0) one may consider that if the function
+ *               retuned TRUE, size bytes were effectively inserted.
+ * @return True If everything is ok, false otherwise
  */
 extern gboolean fcl_insert_bytes(fcl_file_t *a_file, guchar *data, goffset position, gsize size)
 {
@@ -296,6 +298,38 @@ extern gboolean fcl_insert_bytes(fcl_file_t *a_file, guchar *data, goffset posit
             return FALSE;
         }
 }
+
+
+
+/**
+ * Deletes bytes in the buffers.
+ * @param a_file : the fcl_file_t file to which we want to deleted size bytes
+ * @param position : position where to delete size_pointer bytes in the file
+ * @param[in,out] size_pointer : number of bytes to be deleted. Returns the
+ * number of bytes effectively deleted (may be less than requested)
+ * @return True if everything is ok, false otherwise.
+ */
+extern gboolean fcl_delete_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer)
+{
+    gsize size = 0;  /** Because I do not like *size_pointer everywhere !  */
+
+    /* we can not delete bytes in a read-only file ! */
+    if (a_file->mode != LIBFCL_MODE_READ)
+        {
+            size = *size_pointer;
+
+            return delete_bytes_at_position(a_file, position, &size);
+
+            *size_pointer = size;
+        }
+    else
+        {
+            fprintf(stderr, Q_("File is read-only, deleting is prohibited\n"));
+            return FALSE;
+        }
+}
+
+
 
 
 /******************************************************************************/
