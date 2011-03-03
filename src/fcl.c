@@ -48,6 +48,7 @@ static goffset position_in_buffer(goffset position);
 static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position);
 static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize *size_pointer);
 static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize size);
+static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, gsize *size_pointer);
 
 static void insert_buffer_in_sequence(fcl_file_t *a_file, fcl_buf_t *a_buffer);
 static gboolean is_in_sequence(GSequence *seq, GSequenceIter *begin, GSequenceIter *end, fcl_buf_t *a_buffer);
@@ -699,9 +700,9 @@ static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset
  */
 static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize size)
 {
-    fcl_buf_t *a_buffer = NULL;  /** Buffer to be overwritten                 */
+    fcl_buf_t *a_buffer = NULL;  /** Buffer where to insert datas             */
     goffset buf_position = 0;    /** Position in the buffer                   */
-    guchar *new_data = NULL;         /** new buffer that will replace the old one */
+    guchar *new_data = NULL;     /** new buffer that will replace the old one */
     gsize new_size = 0;          /** new size for the buffer                  */
 
     a_buffer = read_buffer_at_position(a_file, position);
@@ -717,6 +718,7 @@ static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset p
             memcpy(new_data + buf_position, data, size);
             memcpy(new_data + buf_position + size, a_buffer->data + buf_position, a_buffer->size - buf_position);
 
+            /** @todo remove this ? */
             fcl_print_data(new_data, new_size, TRUE);
 
             g_free(a_buffer->data);
@@ -729,6 +731,53 @@ static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset p
                 }
         }
 }
+
+/**
+ * Deletes bytes at position in the file
+ */
+
+static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, gsize *size_pointer)
+{
+
+    fcl_buf_t *a_buffer = NULL;  /** Buffer where to insert datas             */
+    goffset buf_position = 0;    /** Position in the buffer                   */
+    gsize new_size = 0;          /** new size for the buffer                  */
+    guchar *new_data = NULL;
+    gsize size = 0;
+
+    size = *size_pointer;
+
+    a_buffer = read_buffer_at_position(a_file, position);
+
+    buf_position = (position - a_buffer->real_offset);
+
+    if (buf_position >= 0 && buf_position <= a_buffer->size)
+        {
+            if (buf_position + size <= a_buffer->size)
+                {
+                    /* All bytes to be deleted are in the same buffer */
+                    new_data = (guchar *) g_malloc0((a_buffer->size - size) * sizeof(guchar));
+                    memcpy(new_data, a_buffer->data, (a_buffer->size - size));
+                    g_free(a_buffer->data);
+                    a_buffer->data = new_data;
+                    a_buffer->size = a_buffer->size - size;
+                }
+            else
+                {
+                    /* Bytes to be deleted are in at least two buffers */
+
+                }
+
+            return TRUE;
+        }
+    else
+        {
+            return FALSE;
+        }
+
+    *size_pointer = size;
+}
+
 
 
 /**
