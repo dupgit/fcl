@@ -126,7 +126,7 @@ typedef struct
  * Default buffer size
  */
 #define LIBFCL_MAX_BUF_SIZE 1048576
-#define LIBFCL_BUF_SIZE 65536
+#define LIBFCL_BUF_SIZE 16 /* 65536 */
 
 /**
  * Public part of the library
@@ -151,8 +151,10 @@ extern fcl_file_t *fcl_open_file(gchar *path, gint mode);
 /**
  * This function closes a fcl_file_t
  * @param the fcl_file_t to close
+ * @param save : a gboolean to say wether if we want to save the file before
+ *               closinf it or not.
  */
-extern void fcl_close_file(fcl_file_t *a_file);
+extern void fcl_close_file(fcl_file_t *a_file, gboolean save);
 
 
 /**

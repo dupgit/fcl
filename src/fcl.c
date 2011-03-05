@@ -45,11 +45,15 @@ static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2);
 static goffset buf_number(goffset position);
 static goffset position_in_buffer(goffset position);
 static gboolean fcl_buffer_exists(fcl_buf_t *a_buffer);
+static void print_buffer(gpointer data, gpointer user_data);
+static void print_buffers_situation_in_sequence(GSequence *sequence);
 
 static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position);
 static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize *size_pointer);
 static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize size);
 static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, gsize *size_pointer);
+
+static gboolean save_the_file(fcl_file_t *a_file);
 
 static void insert_buffer_in_sequence(fcl_file_t *a_file, fcl_buf_t *a_buffer);
 
@@ -115,10 +119,16 @@ fcl_file_t *fcl_open_file(gchar *path, gint mode)
  * This function closes a fcl_file_t
  * @param the fcl_file_t to close
  */
-void fcl_close_file(fcl_file_t *a_file)
+void fcl_close_file(fcl_file_t *a_file, gboolean save)
 {
     g_free(a_file->name);
 
+    print_buffers_situation_in_sequence(a_file->sequence);
+
+    if (save == TRUE)
+        {
+           /* save_the_file(a_file); */
+        }
 
     if (a_file->in_stream != NULL)
         {
@@ -336,22 +346,6 @@ extern gboolean fcl_delete_bytes(fcl_file_t *a_file, goffset position, gsize *si
 /******************************************************************************/
 /*********************************** Buffers **********************************/
 
-/**
- * Says wether the buffer structure exists and that the data buffer exists also
- * @param a_buffer the buffer to check
- */
-static gboolean fcl_buffer_exists(fcl_buf_t *a_buffer)
-{
-    if (a_buffer != NULL && a_buffer->data != NULL)
-        {
-            return TRUE;
-        }
-    else
-        {
-            return FALSE;
-        }
-}
-
 
 /**
  * Prints a buffer data (exactly 'size' bytes)
@@ -410,8 +404,69 @@ static void print_message(const char *format, ...)
         }
 }
 
+ goffset offset;      /** Offset of the buffer (aligned with LIBFCL_BUF_SIZE) */
+    goffset real_offset; /** Real offset of the buffer (calculated each time)    */
+    gsize size;          /** Size of the buffer                                  */
+    guchar *data;        /** The buffer (if any)                                 */
+    gboolean in_seq;     /** Says wether the buffer is in the sequence or not    */
+
+/**
+ * Prints the buffer state (if debug is enabled)
+ * @param data a fcl_buf_t buffer is expected
+ * @param user_data : not used so may be NULL
+ */
+static void print_buffer(gpointer data, gpointer user_data)
+{
+    fcl_buf_t *a_buffer = (fcl_buf_t *) data;
+
+    if (ENABLE_DEBUG)
+        {
+            fprintf(stdout, "Offset      : %ld\n", a_buffer->offset);
+            fprintf(stdout, "Real offset : %ld\n", a_buffer->real_offset);
+            fprintf(stdout, "Size        : %ld\n", a_buffer->size);
+            if (a_buffer->in_seq == TRUE)
+                {
+                    fprintf(stdout, "In sequence : TRUE\n\n");
+                }
+            else
+                {
+                     fprintf(stdout, "In sequence : FALSE\n\n");
+                }
+        }
+}
+
+
+static void print_buffers_situation_in_sequence(GSequence *sequence)
+{
+
+    if (ENABLE_DEBUG && sequence != NULL)
+        {
+            fprintf(stdout, "\nBuffers in the sequence :\n");
+            g_sequence_foreach(sequence, print_buffer, NULL);
+        }
+}
+
+
 
 /****************************** Buffers management ****************************/
+
+/**
+ * Says wether the buffer structure exists and that the data buffer exists also
+ * @param a_buffer the buffer to check
+ */
+static gboolean fcl_buffer_exists(fcl_buf_t *a_buffer)
+{
+    if (a_buffer != NULL && a_buffer->data != NULL)
+        {
+            return TRUE;
+        }
+    else
+        {
+            return FALSE;
+        }
+}
+
+
 /**
  * Calculates the number of the buffer which depends of the position in the file
  * @param position : position in the file
@@ -422,6 +477,7 @@ static goffset buf_number(goffset position)
 {
     return (goffset) (position / LIBFCL_BUF_SIZE);
 }
+
 
 /**
  * Returns the position in the buffer
@@ -536,7 +592,7 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
                     a_buffer->offset = (position - gap) / LIBFCL_BUF_SIZE;
                     a_buffer->real_offset = (position - gap);
 
-                    g_seekable_seek(G_SEEKABLE(a_file->in_stream), a_buffer->offset, G_SEEK_SET, NULL, NULL);
+                    g_seekable_seek(G_SEEKABLE(a_file->in_stream), a_buffer->real_offset, G_SEEK_SET, NULL, NULL);
                     read = g_input_stream_read(G_INPUT_STREAM(a_file->in_stream), a_buffer->data, LIBFCL_BUF_SIZE, NULL, NULL);
 
                     a_buffer->size = read;
@@ -838,6 +894,92 @@ static goffset get_gfile_file_size(GFile *the_file)
             return -1;
         }
 }
+
+
+static gboolean save_the_file(fcl_file_t *a_file)
+{
+    fcl_buf_t *a_buffer = NULL;  /** Buffer to be read                                   */
+    gssize read = 0;             /** Number of bytes effectively read                    */
+    goffset real_position = 0;   /** Position in the file (in number of LIBFCL_BUF_SIZE) */
+    goffset gap = 0;             /** gap between the edited buffers and the file         */
+    GSequenceIter *iter = NULL;
+    GSequenceIter *end = NULL;
+    fcl_buf_t * seq_buf = NULL;
+    gboolean ok = TRUE;          /** TRUE until we reach the end */
+    guchar *in_gap = NULL;
+    guchar *to_write = NULL;
+
+
+
+    if (a_file->mode != LIBFCL_MODE_READ)
+        {
+            if (a_file->sequence != NULL)
+                {
+                    /* Saving the file in place */
+                    gap = 0;
+                    real_position = 0;
+                    ok = TRUE;
+                    iter = g_sequence_get_begin_iter(a_file->sequence); /* Begin of the first modification of the file */
+                    end = g_sequence_get_end_iter(a_file->sequence);     /* end of the modification */
+
+                    seq_buf = g_sequence_get(iter);
+
+                    while (ok == TRUE)
+                        {
+                            gap = gap + (seq_buf->size - LIBFCL_BUF_SIZE);
+
+                            if (gap > 0)
+                                {
+                                    /* reading the gap */
+                                    in_gap = (guchar *) g_malloc0(gap * sizeof(guchar));
+
+                                    g_seekable_seek(G_SEEKABLE(a_file->in_stream), seq_buf->real_offset + LIBFCL_BUF_SIZE, G_SEEK_SET, NULL, NULL);
+                                    read = g_input_stream_read(G_INPUT_STREAM(a_file->in_stream), in_gap, gap, NULL, NULL);
+                                }
+
+                            /* Writing the buffer */
+                            g_seekable_seek(G_SEEKABLE(a_file->in_stream), seq_buf->real_offset, G_SEEK_SET, NULL, NULL);
+                            g_output_stream_write(G_OUTPUT_STREAM(a_file->out_stream), seq_buf->data, seq_buf->size, NULL, NULL);
+
+                            if (gap > 0)
+                                {
+                                    to_write = g_memdup(in_gap, gap);
+                                }
+
+                            if (iter == end)
+                                {
+                                    ok = FALSE;
+                                }
+                            else
+                                {
+                                    iter = g_sequence_iter_next(iter);
+                                    seq_buf = g_sequence_get(iter);
+                                    /* if the offset of this buffer is not the
+                                     * following of the previous buffer, we have
+                                     * to "iterate" into the file to "report" the
+                                     * gap
+                                     */
+
+
+                                }
+                        }
+
+                    /* now we should go to the end of the file  ... */
+
+
+
+                }
+
+            return TRUE;
+        }
+    else
+        {
+            fprintf(stderr, Q_("File is read-only, saving it prohibited\n"));
+            return FALSE;
+        }
+
+}
+
 
 
 

@@ -3,6 +3,8 @@
      * Deleting bytes
      * simplifying code (is_in_sequence not needed when a boolean values already
        indicates the presence or not).
+     * deleting basic test
+     * on the difficult road to save the file
 
 03.03.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>

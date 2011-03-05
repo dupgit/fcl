@@ -33,12 +33,18 @@
 
 #include "libfcltest.h"
 
-static void print_message(gboolean success, const char *format, ...);
 static void init_international_languages(void);
+
+static void print_message(gboolean success, const char *format, ...);
+static gchar *get_home_dir(void);
+
+static guchar *fill_data_with_char(gint size, guchar car);
 
 static void test_openning_and_closing_files(void);
 static void test_openning_and_reading_files(void);
-
+static void test_openning_and_overwriting_files(void);
+static void test_openning_and_inserting_in_files(void);
+static void test_openning_and_deleting_in_files(void);
 
 /**
  *  Inits internationalisation
@@ -86,6 +92,47 @@ static void print_message(gboolean success, const char *format, ...)
         }
 }
 
+/**
+ * Retrieves the home dir
+ * @return the home dir in a gchar * that can be freed when no longer needed
+ */
+static gchar *get_home_dir(void)
+{
+    const char *homedir = NULL;
+
+    homedir = g_getenv("HOME");
+
+    if (homedir == NULL)
+        {
+            homedir = g_get_home_dir();
+        }
+
+    return g_strdup(homedir);
+}
+
+
+/**
+ * Fills a buffer with a character
+ * @param size : the size of the buffer that we want
+ * @param car : character used to fill the buffer with
+ * @return a guchar * buffer of the desired size filled with the desired
+ *         character. It may be freed when no longer needed.
+ */
+static guchar *fill_data_with_char(gint size, guchar car)
+{
+    guchar *data = NULL;
+    gint i = 0;
+
+    data = (guchar *) g_malloc0(size * sizeof(guchar));
+
+    for (i = 0; i < size; i++)
+        {
+            data[i] = car;
+        }
+
+    return data;
+}
+
 
 /**
  * This function tests openning files and closing them with different modes
@@ -103,19 +150,19 @@ static void test_openning_and_closing_files(void)
         {
             print_message(my_test_file != NULL, Q_("Opening a file in read mode."));
         }
-    fcl_close_file(my_test_file);
+    fcl_close_file(my_test_file, FALSE);
 
     my_test_file = fcl_open_file("/tmp/test.libfcl", LIBFCL_MODE_WRITE);
     print_message(my_test_file != NULL, Q_("Opening a file in write mode."));
-    fcl_close_file(my_test_file);
+    fcl_close_file(my_test_file, FALSE);
 
     my_test_file = fcl_open_file("/tmp/test.libfcl", LIBFCL_MODE_CREATE);
     print_message(my_test_file != NULL, Q_("Opening a file in create mode."));
-    fcl_close_file(my_test_file);
+    fcl_close_file(my_test_file, FALSE);
 
     my_test_file = fcl_open_file("/tmp/test_doesnotexists", LIBFCL_MODE_READ);
     print_message(my_test_file == NULL, Q_("Opening a file that does not exists in read only mode."));
-    fcl_close_file(my_test_file);
+    fcl_close_file(my_test_file, FALSE);
 
 }
 
@@ -144,7 +191,7 @@ static void test_openning_and_reading_files(void)
         {
             print_message(buffer != NULL, Q_("Reading 3 bytes in /bin/bash !"));
         }
-    fcl_close_file(my_test_file);
+    fcl_close_file(my_test_file, FALSE);
 
 
     /* This test will not return NULL anymore because I deleted the limit for
@@ -154,7 +201,7 @@ static void test_openning_and_reading_files(void)
     size = LIBFCL_MAX_BUF_SIZE + 1;
     buffer = fcl_read_bytes(my_test_file, 1, &size);
     print_message(buffer != NULL, Q_("Openning a file in create mode and reading more than allowed."));
-    fcl_close_file(my_test_file);
+    fcl_close_file(my_test_file, FALSE);
 
 
     /* Reading data at the limits of the buffer */
@@ -170,7 +217,7 @@ static void test_openning_and_reading_files(void)
         {
             print_message(buffer != NULL, Q_("Reading 25 bytes in /bin/bash !"));
         }
-    fcl_close_file(my_test_file);
+    fcl_close_file(my_test_file, FALSE);
 
     /* Reading data at the limits of the file */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
@@ -185,7 +232,7 @@ static void test_openning_and_reading_files(void)
         {
             print_message(buffer != NULL, Q_("Reading 25 bytes in /bin/bash !"));
         }
-    fcl_close_file(my_test_file);
+    fcl_close_file(my_test_file, FALSE);
 
 
     /* Reading data beyond the limits of the file */
@@ -201,13 +248,13 @@ static void test_openning_and_reading_files(void)
         {
             print_message(buffer == NULL, Q_("Reading %ld bytes in /bin/bash ! at %ld"), size, my_test_file->real_size + 4336 );
         }
-    fcl_close_file(my_test_file);
+    fcl_close_file(my_test_file, FALSE);
 
 }
 
 
 /**
- * This function test openning, overwriting in the file and closing them
+ * This function test openning, overwriting in files and closing them
  */
 static void test_openning_and_overwriting_files(void)
 {
@@ -216,6 +263,7 @@ static void test_openning_and_overwriting_files(void)
     guchar *data = NULL;
     gboolean result = TRUE;
     gsize size = 0;
+    gchar *filename = NULL;
 
     buffer = (guchar *) g_strdup_printf("ABC");
 
@@ -226,11 +274,12 @@ static void test_openning_and_overwriting_files(void)
 
     print_message(result == FALSE, Q_("Trying to overwrite in a READ ONLY opened file"));
 
-    fcl_close_file(my_test_file);
-
+    fcl_close_file(my_test_file, FALSE);
 
     /* Testing to overwrite into a file (without saving) */
-    my_test_file = fcl_open_file("/home/dup/.bashrc", LIBFCL_MODE_WRITE);
+    /* @todo change /home/dup in a home user path        */
+    filename = g_build_path(G_DIR_SEPARATOR_S, get_home_dir(), ".bashrc", NULL);
+    my_test_file = fcl_open_file(filename, LIBFCL_MODE_WRITE);
     size = 3;
     result = fcl_overwrite_bytes(my_test_file, buffer, 2, &size);
 
@@ -241,7 +290,7 @@ static void test_openning_and_overwriting_files(void)
     data = fcl_read_bytes(my_test_file, 0, &size);
     fcl_print_data(data, size, TRUE);
 
-    fcl_close_file(my_test_file);
+    fcl_close_file(my_test_file, FALSE);
 
     g_free(buffer);
 
@@ -249,14 +298,13 @@ static void test_openning_and_overwriting_files(void)
 
 
 /**
- * This function test openning, overwriting in the file and closing them
+ * This function test openning, inserting bytes in files and closing them
  */
 static void test_openning_and_inserting_in_files(void)
 {
     fcl_file_t *my_test_file = NULL;
     guchar *buffer = NULL;
     guchar *data = NULL;
-    gboolean result = TRUE;
     gsize size = 0;
 
     buffer = (guchar *) g_strdup_printf("Is this inserted in the file ?");
@@ -267,13 +315,42 @@ static void test_openning_and_inserting_in_files(void)
     /* Inserting bytes */
     fcl_insert_bytes(my_test_file, buffer, 0, 30);
 
+    /* Verifying this (double test here) */
+    size = 200;
+    data = fcl_read_bytes(my_test_file, 0, &size);
+    fcl_print_data(data, size, TRUE);
+
+    fcl_close_file(my_test_file, FALSE);
+}
+
+
+/**
+ * This function test openning, deleting bytes in files and closing them
+ */
+static void test_openning_and_deleting_in_files(void)
+{
+    fcl_file_t *my_test_file = NULL;
+    guchar *data = NULL;
+    gsize size = 0;
+    gchar *filename = NULL;
+
+    filename = g_build_path(G_DIR_SEPARATOR_S, get_home_dir(), ".bashrc", NULL);
+    my_test_file = fcl_open_file(filename, LIBFCL_MODE_WRITE);
+    print_message(my_test_file != NULL, Q_("Opening a file in create mode."));
+
+    /* Deleting bytes */
+    size = 30;
+    fcl_delete_bytes(my_test_file, 0, &size);
+
     /* Verifying this */
     size = 200;
     data = fcl_read_bytes(my_test_file, 0, &size);
     fcl_print_data(data, size, TRUE);
 
-    fcl_close_file(my_test_file);
+    fcl_close_file(my_test_file, FALSE);
 }
+
+
 
 
 int main(int argc, char **argv)
@@ -301,6 +378,11 @@ int main(int argc, char **argv)
     fprintf(stdout, Q_("Testing opening and inserting in files :\n"));
     test_openning_and_inserting_in_files();
     fprintf(stdout,"\n\n");
+
+    fprintf(stdout, Q_("Testing opening and deleting in files :\n"));
+    test_openning_and_deleting_in_files();
+    fprintf(stdout,"\n\n");
+
 
     return 0;
 }
