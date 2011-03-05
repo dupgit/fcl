@@ -103,34 +103,6 @@ typedef struct
 
 
 /**
- * @def LIBFCL_BUF_INFILE
- * Used in buffers to indicate that the buffer has already been inserted in the
- * fcl_file_t sequence.
- *
- * @def LIBFCL_BUF_TOINS
- * This indicates that the buffer is to be inserted into the file
- */
-#define LIBFCL_BUF_INFILE 6
-#define LIBFCL_BUF_TOINS 12
-
-/**
- * @def LIBFCL_BUF_DELETE
- * Used in buffers to indicate that the buffer is a deletion buffer
- *
- * @def LIBFCL_BUF_INSERT
- * Used to indicate that the buffer is to be inserted in the file at the given
- * position
- *
- * @def LIBFCL_BUF_OVERWRITE
- * Used to indicate that the buffer will overwrite the space in the file at the
- * given position
- */
-#define LIBFCL_BUF_DELETE 16
-#define LIBFCL_BUF_INSERT 32
-#define LIBFCL_BUF_OVERWRITE 48
-
-
-/**
  * @struct fcl_buf_t
  * Structure that acts as a buffer
  */
@@ -148,14 +120,13 @@ typedef struct
  * @def LIBFCL_MAX_BUF_SIZE
  * Maximum buffer size that the library handles (This value is 2^20 as this was
  * the total amount of memory that my Atari 1040 ST had !). I don't know if this
- * is usefull in any manner.
+ * is usefull in any manner... ?
  *
  * @def LIBFCL_BUF_SIZE
  * Default buffer size
  */
 #define LIBFCL_MAX_BUF_SIZE 1048576
 #define LIBFCL_BUF_SIZE 65536
-
 
 /**
  * Public part of the library
@@ -242,12 +213,6 @@ extern gboolean fcl_delete_bytes(fcl_file_t *a_file, goffset position, gsize *si
 
 /******************************************************************************/
 /*********************************** Buffers **********************************/
-/**
- * Says wether the buffer structure exists and that the data buffer exists also
- * @param a_buffer the buffer to check
- */
-extern gboolean fcl_buffer_exists(fcl_buf_t *a_buffer);
-
 
 /**
  * Prints a buffer data (exactly 'size' bytes)

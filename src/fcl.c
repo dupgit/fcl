@@ -44,6 +44,7 @@ static gint buffers_overlaps(fcl_buf_t *buffer1, fcl_buf_t *buffer2);
 
 static goffset buf_number(goffset position);
 static goffset position_in_buffer(goffset position);
+static gboolean fcl_buffer_exists(fcl_buf_t *a_buffer);
 
 static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position);
 static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize *size_pointer);
@@ -51,7 +52,6 @@ static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset p
 static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, gsize *size_pointer);
 
 static void insert_buffer_in_sequence(fcl_file_t *a_file, fcl_buf_t *a_buffer);
-static gboolean is_in_sequence(GSequence *seq, GSequenceIter *begin, GSequenceIter *end, fcl_buf_t *a_buffer);
 
 static void print_message(const char *format, ...);
 
@@ -340,7 +340,7 @@ extern gboolean fcl_delete_bytes(fcl_file_t *a_file, goffset position, gsize *si
  * Says wether the buffer structure exists and that the data buffer exists also
  * @param a_buffer the buffer to check
  */
-extern gboolean fcl_buffer_exists(fcl_buf_t *a_buffer)
+static gboolean fcl_buffer_exists(fcl_buf_t *a_buffer)
 {
     if (a_buffer != NULL && a_buffer->data != NULL)
         {
@@ -552,59 +552,6 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
 
 
 /**
- * Says wether the buffer is in the sequence or not
- * @warning this function is recursive
- */
-static gboolean is_in_sequence(GSequence *seq, GSequenceIter *begin, GSequenceIter *end, fcl_buf_t *a_buffer)
-{
-    fcl_buf_t *seq_buffer = NULL;
-    GSequenceIter *mid_point = NULL;
-    gint pos_begin = 0;
-    gint pos_end = 0;
-
-    pos_begin = g_sequence_iter_get_position(begin);
-    pos_end = g_sequence_iter_get_position(end);
-
-    if (pos_end < pos_begin)
-        {
-            return FALSE;
-        }
-
-    if (pos_begin == pos_end)
-        {
-            seq_buffer = g_sequence_get(begin);
-
-            if (cmp_offset_value(a_buffer, seq_buffer, NULL) == 0)
-                {
-                    return TRUE;
-                }
-            else
-                {
-                    return FALSE;
-                }
-        }
-    else
-        {
-            mid_point = g_sequence_range_get_midpoint(begin, end);
-            seq_buffer = g_sequence_get(mid_point);
-
-            if (cmp_offset_value(a_buffer, seq_buffer, NULL) == 0)
-                {
-                    return TRUE;
-                }
-            else if (cmp_offset_value(a_buffer, seq_buffer, NULL) == +1)
-                {
-                    return is_in_sequence(seq, mid_point, end, a_buffer);
-                }
-            else
-                {
-                    return is_in_sequence(seq, begin, mid_point, a_buffer);
-                }
-        }
-}
-
-
-/**
  * Inserts a buffer in the sequence (only if it is not already in it !)
  */
 static void insert_buffer_in_sequence(fcl_file_t *a_file, fcl_buf_t *a_buffer)
@@ -627,7 +574,7 @@ static void insert_buffer_in_sequence(fcl_file_t *a_file, fcl_buf_t *a_buffer)
                     begin = g_sequence_get_begin_iter(a_file->sequence);
                     end = g_sequence_get_end_iter(a_file->sequence);
 
-                    if (is_in_sequence(a_file->sequence, begin, end, a_buffer) == FALSE)
+                    if (a_buffer->in_seq == FALSE)
                         {
                             a_buffer->in_seq = TRUE;
                             g_sequence_insert_sorted(a_file->sequence, a_buffer, cmp_offset_value, NULL);
@@ -664,13 +611,12 @@ static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset
             memcpy(a_buffer->data + buf_position, data, size);
             insert_buffer_in_sequence(a_file, a_buffer);
         }
-    else if (buf_position + size > a_buffer->size && a_buffer->size < LIBFCL_BUF_SIZE)
+    else if (buf_position + size > a_buffer->size && a_buffer->size < LIBFCL_BUF_SIZE) /* This last test is here to detect the end of the file */
         {
             fprintf(stderr, Q_("Overwritting outside of the file is not possible !\n"));
             memcpy(a_buffer->data + buf_position, data, a_buffer->size - buf_position);
             insert_buffer_in_sequence(a_file, a_buffer);
             size = a_buffer->size - buf_position;
-
         }
     else if (buf_position + size > a_buffer->size)
         {
@@ -718,9 +664,6 @@ static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset p
             memcpy(new_data + buf_position, data, size);
             memcpy(new_data + buf_position + size, a_buffer->data + buf_position, a_buffer->size - buf_position);
 
-            /** @todo remove this ? */
-            fcl_print_data(new_data, new_size, TRUE);
-
             g_free(a_buffer->data);
             a_buffer->data = new_data;
             a_buffer->size = new_size;
@@ -732,18 +675,19 @@ static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset p
         }
 }
 
+
 /**
  * Deletes bytes at position in the file
+ * @warning this function is recursive
  */
-
 static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, gsize *size_pointer)
 {
 
     fcl_buf_t *a_buffer = NULL;  /** Buffer where to insert datas             */
     goffset buf_position = 0;    /** Position in the buffer                   */
-    gsize new_size = 0;          /** new size for the buffer                  */
     guchar *new_data = NULL;
     gsize size = 0;
+    gboolean result = TRUE;
 
     size = *size_pointer;
 
@@ -753,29 +697,66 @@ static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, g
 
     if (buf_position >= 0 && buf_position <= a_buffer->size)
         {
+            /* Is this always the case ? ie may we fall in the case that the
+             * buffer size is so small that the position is not in the
+             * retrieved buffer but in the newt one ?
+             */
+
             if (buf_position + size <= a_buffer->size)
                 {
                     /* All bytes to be deleted are in the same buffer */
                     new_data = (guchar *) g_malloc0((a_buffer->size - size) * sizeof(guchar));
-                    memcpy(new_data, a_buffer->data, (a_buffer->size - size));
+
+                    memcpy(new_data, a_buffer->data, buf_position);
+                    memcpy(new_data + buf_position, a_buffer->data + (buf_position + size), a_buffer->size - (buf_position + size) );
+
                     g_free(a_buffer->data);
                     a_buffer->data = new_data;
                     a_buffer->size = a_buffer->size - size;
                 }
+            else if (buf_position + size > a_buffer->size && a_buffer->size < LIBFCL_BUF_SIZE) /* This last test is here to detect the end of the file */
+                {
+                    fprintf(stderr, Q_("Deleting bytes outside of the file is not possible !\n"));
+                    new_data = (guchar *) g_malloc0((buf_position) * sizeof(guchar));
+                    memcpy(new_data, a_buffer->data, (buf_position));
+                    g_free(a_buffer->data);
+                    a_buffer->data = new_data;
+                    a_buffer->size = buf_position;
+
+                    /* Here the _real_ size is different ! */
+                    size = a_buffer->size - buf_position;
+                }
             else
                 {
                     /* Bytes to be deleted are in at least two buffers */
+                    new_data = (guchar *) g_malloc0((buf_position) * sizeof(guchar));
+                    memcpy(new_data, a_buffer->data, (buf_position));
+                    g_free(a_buffer->data);
+                    a_buffer->data = new_data;
+                    a_buffer->size = buf_position;
 
+                    /* deletes bytes in the other buffers */
+                    result = delete_bytes_at_position(a_file, position + (a_buffer->size - buf_position), &size);
                 }
 
-            return TRUE;
+            /* The buffer has been modified we must put it in the sequence (if it is not allready in it) */
+
+             if (a_buffer->in_seq == FALSE)
+                {
+                    insert_buffer_in_sequence(a_file, a_buffer);
+                }
+
+            *size_pointer = size;
+
+            return result;
         }
     else
         {
+            *size_pointer = size;
             return FALSE;
         }
 
-    *size_pointer = size;
+
 }
 
 
