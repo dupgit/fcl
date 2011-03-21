@@ -206,31 +206,31 @@ static void test_openning_and_reading_files(void)
 
     /* Reading data at the limits of the buffer */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
-    size = 25;
-    buffer = fcl_read_bytes(my_test_file, 65530, &size);
+    size = 35;
+    buffer = fcl_read_bytes(my_test_file, 65525, &size);
     if (buffer != NULL)
         {
             print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), size, 65530);
-            fcl_print_data(buffer, 25, TRUE);
+            fcl_print_data(buffer, size, TRUE);
         }
     else
         {
-            print_message(buffer != NULL, Q_("Reading 25 bytes in /bin/bash !"));
+            print_message(buffer != NULL, Q_("Reading 35 bytes in /bin/bash !"));
         }
     fcl_close_file(my_test_file, FALSE);
 
     /* Reading data at the limits of the file */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
-    size = 16384;
-    buffer = fcl_read_bytes(my_test_file, my_test_file->real_size - 4336, &size);
+    size = 336;
+    buffer = fcl_read_bytes(my_test_file, my_test_file->real_size - 336, &size);
     if (buffer != NULL)
         {
-            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), size, my_test_file->real_size - 4336);
+            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), size, my_test_file->real_size - 336);
             fcl_print_data(buffer, size, TRUE);
         }
     else
         {
-            print_message(buffer != NULL, Q_("Reading 25 bytes in /bin/bash !"));
+            print_message(buffer != NULL, Q_("Reading 336 bytes in /bin/bash !"));
         }
     fcl_close_file(my_test_file, FALSE);
 
@@ -238,15 +238,15 @@ static void test_openning_and_reading_files(void)
     /* Reading data beyond the limits of the file */
     my_test_file = fcl_open_file("/bin/bash", LIBFCL_MODE_READ);
     size = 16384;
-    buffer = fcl_read_bytes(my_test_file, my_test_file->real_size + 4336, &size);
+    buffer = fcl_read_bytes(my_test_file, my_test_file->real_size + 336, &size);
     if (buffer != NULL)
         {
-            print_message(buffer == NULL, Q_("Read (%d bytes at %d) : "), size, my_test_file->real_size + 4336);
+            print_message(buffer == NULL, Q_("Read (%d bytes at %d) : "), size, my_test_file->real_size + 336);
             fcl_print_data(buffer, size, TRUE);
         }
     else
         {
-            print_message(buffer == NULL, Q_("Reading %ld bytes in /bin/bash ! at %ld"), size, my_test_file->real_size + 4336 );
+            print_message(buffer == NULL, Q_("Reading %ld bytes in /bin/bash ! at %ld"), size, my_test_file->real_size + 336 );
         }
     fcl_close_file(my_test_file, FALSE);
 

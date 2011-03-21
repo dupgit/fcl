@@ -404,11 +404,6 @@ static void print_message(const char *format, ...)
         }
 }
 
- goffset offset;      /** Offset of the buffer (aligned with LIBFCL_BUF_SIZE) */
-    goffset real_offset; /** Real offset of the buffer (calculated each time)    */
-    gsize size;          /** Size of the buffer                                  */
-    guchar *data;        /** The buffer (if any)                                 */
-    gboolean in_seq;     /** Says wether the buffer is in the sequence or not    */
 
 /**
  * Prints the buffer state (if debug is enabled)
@@ -612,9 +607,6 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
  */
 static void insert_buffer_in_sequence(fcl_file_t *a_file, fcl_buf_t *a_buffer)
 {
-    GSequenceIter *begin = NULL;
-    GSequenceIter *end = NULL;
-
 
     if (a_file != NULL && a_buffer != NULL)
         {
@@ -623,18 +615,15 @@ static void insert_buffer_in_sequence(fcl_file_t *a_file, fcl_buf_t *a_buffer)
                     a_buffer->in_seq = TRUE;
                     a_file->sequence = g_sequence_new(destroy_fcl_buf_t);
                     g_sequence_append(a_file->sequence, a_buffer);
-                    print_message("Inserted buffer : %p\n", a_buffer);
+                    print_message("Inserted buffer : %p (%ld, %ld, %ld)\n", a_buffer, a_buffer->offset, a_buffer->real_offset, a_buffer->size);
                 }
             else
                 {
-                    begin = g_sequence_get_begin_iter(a_file->sequence);
-                    end = g_sequence_get_end_iter(a_file->sequence);
-
                     if (a_buffer->in_seq == FALSE)
                         {
                             a_buffer->in_seq = TRUE;
                             g_sequence_insert_sorted(a_file->sequence, a_buffer, cmp_offset_value, NULL);
-                            print_message("Inserted buffer : %p\n", a_buffer);
+                            print_message("Inserted buffer : %p (%ld, %ld, %ld)\n", a_buffer, a_buffer->offset, a_buffer->real_offset, a_buffer->size);
                         }
                 }
         }
@@ -743,19 +732,25 @@ static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, g
     goffset buf_position = 0;    /** Position in the buffer                   */
     guchar *new_data = NULL;
     gsize size = 0;
+    gsize old_buffer_size = 0;
+    gsize to_delete_size = 0;
     gboolean result = TRUE;
 
     size = *size_pointer;
+
+    print_message("delete_bytes_at_position(%p, %ld, %ld)\n", a_file, position, size);
 
     a_buffer = read_buffer_at_position(a_file, position);
 
     buf_position = (position - a_buffer->real_offset);
 
+    print_message("buf_position : %ld <? %ld : a_buffer->size\n", buf_position, a_buffer->size);
+
     if (buf_position >= 0 && buf_position <= a_buffer->size)
         {
             /* Is this always the case ? ie may we fall in the case that the
              * buffer size is so small that the position is not in the
-             * retrieved buffer but in the newt one ?
+             * retrieved buffer but in the next one ?
              */
 
             if (buf_position + size <= a_buffer->size)
@@ -784,6 +779,9 @@ static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, g
                 }
             else
                 {
+                    /* saving read buffer size */
+                    old_buffer_size = a_buffer->size;
+
                     /* Bytes to be deleted are in at least two buffers */
                     new_data = (guchar *) g_malloc0((buf_position) * sizeof(guchar));
                     memcpy(new_data, a_buffer->data, (buf_position));
@@ -791,8 +789,15 @@ static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, g
                     a_buffer->data = new_data;
                     a_buffer->size = buf_position;
 
+                    /* new size to be deleted in the next buffer */
+                    to_delete_size = size - (LIBFCL_BUF_SIZE - buf_position);
+
                     /* deletes bytes in the other buffers */
-                    result = delete_bytes_at_position(a_file, position + (a_buffer->size - buf_position), &size);
+                    result = delete_bytes_at_position(a_file, position + (old_buffer_size - buf_position), &to_delete_size);
+
+                    /* to reflect what was effectively deleted */
+                    size = to_delete_size + (LIBFCL_BUF_SIZE - buf_position);
+
                 }
 
             /* The buffer has been modified we must put it in the sequence (if it is not allready in it) */
@@ -811,8 +816,6 @@ static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, g
             *size_pointer = size;
             return FALSE;
         }
-
-
 }
 
 
@@ -895,7 +898,9 @@ static goffset get_gfile_file_size(GFile *the_file)
         }
 }
 
-
+/**
+ * @warning Still to be built !
+ */
 static gboolean save_the_file(fcl_file_t *a_file)
 {
     fcl_buf_t *a_buffer = NULL;  /** Buffer to be read                                   */

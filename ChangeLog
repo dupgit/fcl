@@ -1,3 +1,8 @@
+21.05.2011
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * Correcting bugs in deleting files (still a huge number of bugs in there)
+     * tuning testing values
+
 05.03.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Deleting bytes
