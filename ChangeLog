@@ -1,4 +1,9 @@
-21.05.2011
+22.03.2011
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * Found things tat was not ok... Still have to correct the fcl_read_bytes
+       second case.
+
+21.03.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Correcting bugs in deleting files (still a huge number of bugs in there)
      * tuning testing values

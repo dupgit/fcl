@@ -203,8 +203,9 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
                     data = (guchar *) g_memdup(a_buffer->data + offset, size);
                     print_message("size : %ld\n", size);
                 }
-            else if (a_buffer->size != LIBFCL_BUF_SIZE) /* Not all the buffer was filled */
-                {
+            else if (a_buffer->size != LIBFCL_BUF_SIZE) /* Not all the buffer was filled */ /* replace this test with an end of stream test */
+                { /** @warning this may not be the end of the file !! (deleted buffers may not contain all datas) **/
+
                     size = a_buffer->size - offset;
                     if (size  > 0)
                         {
@@ -515,8 +516,7 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
     gssize read  = 0;            /** Number of bytes effectively read                    */
     goffset real_position = 0;   /** Position in the file (in number of LIBFCL_BUF_SIZE) */
     goffset gap = 0;             /** gap between the edited buffers and the file         */
-    GSequenceIter *begin = NULL;
-    GSequenceIter *end = NULL;
+    GSequenceIter *begin = NULL; /** to iterate over the sequence, from the begining     */
     fcl_buf_t * seq_buf = NULL;
     gboolean ok = TRUE;
 
@@ -551,22 +551,34 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
             real_position = 0;
             ok = TRUE;
             begin = g_sequence_get_begin_iter(a_file->sequence);
-            end = g_sequence_get_end_iter(a_file->sequence);
 
             seq_buf = g_sequence_get(begin);
 
-            while ((real_position + seq_buf->size) < position && ok == TRUE)
+            print_message("\nreal_position + seq_buf->size < position ? %ld + %ld < %ld\n", real_position,  seq_buf->size, position);
+
+            while ((real_position + seq_buf->size) <= position && ok == TRUE)
                 {
                     real_position = real_position + seq_buf->size;
                     gap = gap + (seq_buf->size - LIBFCL_BUF_SIZE);
-                    if (begin == end)
+
+                    print_message("\nreal_position : %ld ; gap : %ld\n", real_position, gap);
+
+                    if (g_sequence_iter_is_end(begin) == TRUE)
                         {
                             ok = FALSE;
                         }
                     else
                         {
                             begin = g_sequence_iter_next(begin);
-                            seq_buf = g_sequence_get(begin);
+
+                            if (g_sequence_iter_is_end(begin) != TRUE)
+                                {
+                                    seq_buf = g_sequence_get(begin);
+                                }
+                            else
+                                {
+                                    ok = FALSE;
+                                }
                         }
                 }
 
