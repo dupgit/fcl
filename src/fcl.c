@@ -203,7 +203,7 @@ guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer
                     data = (guchar *) g_memdup(a_buffer->data + offset, size);
                     print_message("size : %ld\n", size);
                 }
-            else if (a_buffer->size != LIBFCL_BUF_SIZE) /* Not all the buffer was filled */ /* replace this test with an end of stream test */
+            else if (a_buffer->size != LIBFCL_BUF_SIZE && a_buffer->in_seq == FALSE) /* Not all the buffer was filled */ /* replace this test with an end of stream test */
                 { /** @warning this may not be the end of the file !! (deleted buffers may not contain all datas) **/
 
                     size = a_buffer->size - offset;
@@ -605,8 +605,8 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
                     a_buffer->size = read;
                 }
         }
-    print_message("\n");
 
+    print_message("\n");
     print_message("offset \t: %ld\nreal_offset \t: %ld\nsize \t: %ld\n", a_buffer->offset, a_buffer->real_offset, a_buffer->size);
 
 
@@ -652,7 +652,6 @@ static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset
     goffset buf_position = 0;    /** Position in the buffer    */
     gsize reste = 0;
     gsize size = 0;
-
 
     size = *size_pointer;
 

@@ -315,6 +315,7 @@ static void test_openning_and_inserting_in_files(void)
     /* Inserting bytes */
     fcl_insert_bytes(my_test_file, buffer, 0, 30);
 
+    fprintf(stdout, "\nVerifying if everything is there !\n");
     /* Verifying this (double test here) */
     size = 200;
     data = fcl_read_bytes(my_test_file, 0, &size);
