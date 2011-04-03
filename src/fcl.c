@@ -48,7 +48,8 @@ static gboolean fcl_buffer_exists(fcl_buf_t *a_buffer);
 static void print_buffer(gpointer data, gpointer user_data);
 static void print_buffers_situation_in_sequence(GSequence *sequence);
 
-static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position);
+static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position, gsize *gap);
+static guchar *read_bytes_at_position(fcl_file_t *a_file, goffset position, gsize *size_pointer, gsize *in_data);
 static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize *size_pointer);
 static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset position, gsize size);
 static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, gsize *size_pointer);
@@ -164,88 +165,22 @@ void fcl_close_file(fcl_file_t *a_file, gboolean save)
  * This function reads an fcl_buf_t buffer from an fcl_file_t
  * @param a_file : the fcl_file_t file from which we want to read size bytes
  * @param position : the position where we want to read bytes
- * @param[in,out] size_pointer : the number of bytes we want to read. If this
- *                               value is higher than LIBFCL_MAX_BUF_SIZE the
- *                               function returns NULL. The value indicates the
- *                               real size of the data read hence, the real size
- *                               of the returned buffer
- * @return If everything is ok a filled guchar *buffer, NULL otherwise !
+ * @param[in,out] size_pointer : the number of bytes we want to read. The value
+ *                               indicates thereal size of the data read hence,
+ *                               the real size of the returned gchar * buffer
+ * @return If everything is ok a filled guchar *buffer (may be less than
+ *         requested)
  */
 guchar *fcl_read_bytes(fcl_file_t *a_file, goffset position, gsize *size_pointer)
 {
+    gsize in_data = 0;
+    guchar *data = NULL;
 
-    fcl_buf_t *a_buffer = NULL;  /** the fcl_buf_t structure that will be returned     */
-    guchar *data = NULL;         /** The data that is claimed (size bytes at position) */
-    guchar *next_data = NULL;
-    guchar *new_data = NULL;
-    goffset offset = 0;          /** The offset in the data buffer                     */
-    gsize real_size = 0;         /** Real size returned by the recursive call          */
-    gsize size = 0;              /** Because I do not like *size_pointer everywhere !  */
-
-    size = *size_pointer;
-
-    print_message("fcl_read_bytes(%p, %ld, %ld)\n", a_file, position, size);
-
-
-    data = (guchar *) g_malloc0 (size * sizeof(guchar));
-
-    a_buffer = read_buffer_at_position(a_file, position);
-
-    offset = (position - a_buffer->real_offset);
-
-    print_message("offset : %ld; size : %ld\n", offset, size);
-
-    if (offset >= 0 && offset <= a_buffer->size)
+    if (a_file != NULL && position >= 0 && *size_pointer > 0)
         {
-            if (a_buffer->size >= offset + size) /* The claimed data is all in the buffer */
-                {
-                    print_message("1. g_mem_dup(%p, %ld)\n", a_buffer->data + offset, size);
-                    data = (guchar *) g_memdup(a_buffer->data + offset, size);
-                    print_message("size : %ld\n", size);
-                }
-            else if (a_buffer->size != LIBFCL_BUF_SIZE && a_buffer->in_seq == FALSE) /* Not all the buffer was filled */ /* replace this test with an end of stream test */
-                { /** @warning this may not be the end of the file !! (deleted buffers may not contain all datas) **/
-
-                    size = a_buffer->size - offset;
-                    if (size  > 0)
-                        {
-                            print_message("2. g_mem_dup(%p, %ld)\n", a_buffer->data + offset, size);
-                            data = (guchar *) g_memdup(a_buffer->data + offset, size);
-                        }
-                }
-            else
-                {
-                    /* claimed data is located in two different buffers at least */
-                    /** @todo may be a bug here in memory allocations */
-                    print_message("3. g_mem_dup(%p, %ld)\n", a_buffer->data + offset, a_buffer->size - offset);
-
-                    new_data = (guchar *) g_memdup(a_buffer->data + offset, a_buffer->size - offset);
-
-                    real_size = size - (a_buffer->size - offset);
-                    next_data = fcl_read_bytes(a_file, a_buffer->real_offset + a_buffer->size, &real_size);
-
-                    size = real_size + (a_buffer->size - offset);
-                    print_message("size : %ld; real_size : %ld\n", size, real_size);
-
-                    data = (guchar *) g_malloc0(size * sizeof(guchar));
-                    memcpy(data, new_data, a_buffer->size - offset);
-                    memcpy(data + (a_buffer->size - offset), next_data, real_size);
-
-                    g_free(new_data);
-                    g_free(next_data);
-                }
+            data = read_bytes_at_position(a_file, position, size_pointer, &in_data);
+            *size_pointer = in_data;
         }
-    else
-        {
-            data = NULL;
-        }
-
-    if (a_buffer->in_seq == FALSE)
-        {
-            destroy_fcl_buf_t((gpointer) a_buffer);
-        }
-
-    *size_pointer = size;
 
     return data;
 }
@@ -420,6 +355,7 @@ static void print_buffer(gpointer data, gpointer user_data)
             fprintf(stdout, "Offset      : %ld\n", a_buffer->offset);
             fprintf(stdout, "Real offset : %ld\n", a_buffer->real_offset);
             fprintf(stdout, "Size        : %ld\n", a_buffer->size);
+
             if (a_buffer->in_seq == TRUE)
                 {
                     fprintf(stdout, "In sequence : TRUE\n\n");
@@ -510,17 +446,17 @@ static fcl_buf_t *new_fcl_buf_t(void)
  * of the buffer which should be considerated as valid when generating a new
  * buffer.
  */
-static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
+static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position, gsize *the_gap)
 {
     fcl_buf_t *a_buffer = NULL;  /** Buffer to be read                                   */
     gssize read  = 0;            /** Number of bytes effectively read                    */
     goffset real_position = 0;   /** Position in the file (in number of LIBFCL_BUF_SIZE) */
-    goffset gap = 0;             /** gap between the edited buffers and the file         */
+    gsize gap = 0;               /** gap between the edited buffers and the file         */
     GSequenceIter *begin = NULL; /** to iterate over the sequence, from the begining     */
     fcl_buf_t * seq_buf = NULL;
     gboolean ok = TRUE;
 
-    print_message("read_buffer_at_position(%p, %ld) : ", a_file, position);
+    print_message("read_buffer_at_position(%p, %ld, %ld) : ", a_file, position, *the_gap);
 
     if (a_file->sequence == NULL)
         {
@@ -538,7 +474,7 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
 
             a_buffer->size = read; /* size of what was read (it may be less than LIBFCL_BUF_SIZE) */
 
-            print_message("%ld", read);
+            print_message("%ld\n", read);
         }
     else
         {
@@ -561,7 +497,7 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
                     real_position = real_position + seq_buf->size;
                     gap = gap + (seq_buf->size - LIBFCL_BUF_SIZE);
 
-                    print_message("\nreal_position : %ld ; gap : %ld\n", real_position, gap);
+                    print_message("real_position : %ld ; gap : %ld\n", real_position, gap);
 
                     if (g_sequence_iter_is_end(begin) == TRUE)
                         {
@@ -582,12 +518,13 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
                         }
                 }
 
-            print_message("\nreal_position : %ld; seq_buf->size : %ld; position : %ld\n", real_position,  seq_buf->size, position);
+            print_message("real_position : %ld; seq_buf->size : %ld; position : %ld; gap : %ld\n", real_position,  seq_buf->size, position, gap);
 
-            if ((real_position + seq_buf->size) > position)
+            *the_gap = gap;
+            if ((ok == TRUE) && ((real_position + seq_buf->size) > position))
                 {
                     /* buffer exists */
-                    print_message("%ld == %ld ?", seq_buf->real_offset, real_position);
+                    print_message("%ld == %ld ?\n", seq_buf->real_offset, real_position);
                     seq_buf->real_offset = real_position;
                     a_buffer = seq_buf;
                 }
@@ -606,12 +543,118 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position)
                 }
         }
 
-    print_message("\n");
-    print_message("offset \t: %ld\nreal_offset \t: %ld\nsize \t: %ld\n", a_buffer->offset, a_buffer->real_offset, a_buffer->size);
-
+    print_buffer(a_buffer, NULL);
 
     return a_buffer;
 }
+
+
+/**
+ * This function reads an fcl_buf_t buffer from an fcl_file_t
+ * @param a_file : the fcl_file_t file from which we want to read size bytes
+ * @param position : the position where we want to read bytes
+ * @param[in,out] size_pointer : the number of bytes we want to read. The value
+ *                               indicates thereal size of the data read hence,
+ *                               the real size of the returned gchar * buffer
+ * @param[in,out] in_data : number of bytes in the buffer to be returned
+ * @return If everything is ok a filled guchar *buffer (may be less than
+ *         requested)
+ */
+static guchar *read_bytes_at_position(fcl_file_t *a_file, goffset position, gsize *size_pointer, gsize *in_data)
+{
+    fcl_buf_t *a_buffer = NULL;  /** the fcl_buf_t structure that will be returned     */
+    guchar *data = NULL;         /** The data that is claimed (size bytes at position) */
+    guchar *next_data = NULL;
+    guchar *new_data = NULL;
+    goffset offset = 0;          /** The offset in the data buffer                     */
+    gsize real_size = 0;         /** Real size returned by the recursive call          */
+    gsize size = 0;              /** Because I do not like *size_pointer everywhere !  */
+    gsize gap = 0;
+
+    size = *size_pointer;
+
+    print_message("read_bytes_at_position(%p, %ld, %ld, %ld)\n", a_file, position, size, *in_data);
+
+    data = (guchar *) g_malloc0 (size * sizeof(guchar));
+
+    a_buffer = read_buffer_at_position(a_file, position, &gap);
+
+    /* There is something here, may be same mistake than *size_pointer but with real_offset and gap is not the solution */
+    offset = (position - a_buffer->real_offset - gap);
+
+    print_message("offset : %ld; size : %ld\n", offset, size);
+
+    if (offset >= 0 && offset <= a_buffer->size)
+        {
+            if (a_buffer->size >= offset + size) /* The claimed data is all in the buffer */
+                {
+                    print_message("1. g_mem_dup(%p, %ld)\n", a_buffer->data + offset, size);
+                    data = (guchar *) g_memdup(a_buffer->data + offset, size);
+                    print_message("size : %ld\n", size);
+                    *in_data = *in_data + size;
+                }
+            else if (a_buffer->size != LIBFCL_BUF_SIZE && a_buffer->in_seq == FALSE)
+                { /* Not all the buffer was filled but the buffer is not in the sequence. the buffer was read in the file hence this is the end of the file */
+
+                    size = a_buffer->size - offset;
+                    if (size  > 0)
+                        {
+                            print_message("2. g_mem_dup(%p, %ld)\n", a_buffer->data + offset, size);
+                            data = (guchar *) g_memdup(a_buffer->data + offset, size);
+                            *in_data = *in_data + size;
+                        }
+                }
+            else
+                {
+                    /* claimed data is located in two different buffers at least */
+                    /** @todo may be a bug here in memory allocations ?? */
+                    print_message("3. g_mem_dup(%p, %ld)\n", a_buffer->data + offset, a_buffer->size - offset);
+
+                    new_data = (guchar *) g_memdup(a_buffer->data + offset, a_buffer->size - offset);
+
+                    real_size = size - (a_buffer->size - offset);
+                    *in_data = *in_data + (a_buffer->size - offset);
+
+                    next_data = read_bytes_at_position(a_file, a_buffer->real_offset + a_buffer->size, &real_size, in_data);
+
+                    if (next_data != NULL)
+                        {
+                            size = real_size + (a_buffer->size - offset);
+
+                            print_message("size : %ld; real_size : %ld; in_data : %ld\n", size, real_size, *in_data);
+
+                            data = (guchar *) g_malloc0(size * sizeof(guchar));
+                            memcpy(data, new_data, a_buffer->size - offset);
+                            memcpy(data + (a_buffer->size - offset), next_data, real_size);
+
+                            g_free(new_data);
+                            g_free(next_data);
+                        }
+                    else
+                        {
+                            data = (guchar *) g_malloc0(size * sizeof(guchar));
+                            memcpy(data, new_data, a_buffer->size - offset);
+                            g_free(new_data);
+                        }
+                }
+        }
+    else
+        {
+            data = NULL;
+        }
+
+    if (a_buffer->in_seq == FALSE)
+        {
+            destroy_fcl_buf_t((gpointer) a_buffer);
+        }
+
+    *size_pointer = size;
+
+    return data;
+}
+
+
+
 
 
 /**
@@ -652,12 +695,13 @@ static void overwrite_data_at_position(fcl_file_t *a_file, guchar *data, goffset
     goffset buf_position = 0;    /** Position in the buffer    */
     gsize reste = 0;
     gsize size = 0;
+    gsize gap = 0;
 
     size = *size_pointer;
 
     print_message("overwrite_data_at_position(%p, %p, %ld, %ld)\n", a_file, data, position, size);
 
-    a_buffer = read_buffer_at_position(a_file, position);
+    a_buffer = read_buffer_at_position(a_file, position, &gap);
 
     buf_position = (position - a_buffer->real_offset);
     print_message("buf_position : %ld (position : %ld, real_offset : %ld)\n", buf_position, position, a_buffer->real_offset);
@@ -706,8 +750,9 @@ static void inserts_data_at_position(fcl_file_t *a_file, guchar *data, goffset p
     goffset buf_position = 0;    /** Position in the buffer                   */
     guchar *new_data = NULL;     /** new buffer that will replace the old one */
     gsize new_size = 0;          /** new size for the buffer                  */
+    gsize gap = 0;
 
-    a_buffer = read_buffer_at_position(a_file, position);
+    a_buffer = read_buffer_at_position(a_file, position, &gap);
 
     buf_position = (position - a_buffer->real_offset);
 
@@ -746,12 +791,13 @@ static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, g
     gsize old_buffer_size = 0;
     gsize to_delete_size = 0;
     gboolean result = TRUE;
+    gsize gap = 0;
 
     size = *size_pointer;
 
     print_message("delete_bytes_at_position(%p, %ld, %ld)\n", a_file, position, size);
 
-    a_buffer = read_buffer_at_position(a_file, position);
+    a_buffer = read_buffer_at_position(a_file, position, &gap);
 
     buf_position = (position - a_buffer->real_offset);
 

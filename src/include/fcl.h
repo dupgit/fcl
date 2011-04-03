@@ -126,7 +126,7 @@ typedef struct
  * Default buffer size
  */
 #define LIBFCL_MAX_BUF_SIZE 128 /* 1048576 */
-#define LIBFCL_BUF_SIZE 8 /* 65536 */
+#define LIBFCL_BUF_SIZE 8       /* 65536   */
 
 /**
  * Public part of the library

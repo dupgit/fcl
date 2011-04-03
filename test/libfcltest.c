@@ -307,7 +307,7 @@ static void test_openning_and_inserting_in_files(void)
     guchar *data = NULL;
     gsize size = 0;
 
-    buffer = (guchar *) g_strdup_printf("Is this inserted in the file ?");
+    buffer = (guchar *) g_strdup_printf("Is this inserted in the file ??");
 
     my_test_file = fcl_open_file("/tmp/createme", LIBFCL_MODE_CREATE);
     print_message(my_test_file != NULL, Q_("Opening a file in create mode."));
@@ -316,9 +316,10 @@ static void test_openning_and_inserting_in_files(void)
     fcl_insert_bytes(my_test_file, buffer, 0, 30);
 
     fprintf(stdout, "\nVerifying if everything is there !\n");
-    /* Verifying this (double test here) */
+    /* Verifying this (double check here) */
     size = 200;
     data = fcl_read_bytes(my_test_file, 0, &size);
+    fprintf(stdout, Q_("Size read : %ld\n"), size);
     fcl_print_data(data, size, TRUE);
 
     fcl_close_file(my_test_file, FALSE);
