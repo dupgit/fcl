@@ -556,7 +556,8 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position, 
  * @param[in,out] size_pointer : the number of bytes we want to read. The value
  *                               indicates thereal size of the data read hence,
  *                               the real size of the returned gchar * buffer
- * @param[in,out] in_data : number of bytes in the buffer to be returned
+ * @param[in,out] in_data : number of bytes in the buffer to be returned. It
+ *                          also indicates the position in the buffer.
  * @return If everything is ok a filled guchar *buffer (may be less than
  *         requested)
  */
@@ -580,7 +581,13 @@ static guchar *read_bytes_at_position(fcl_file_t *a_file, goffset position, gsiz
     a_buffer = read_buffer_at_position(a_file, position, &gap);
 
     /* There is something here, may be same mistake than *size_pointer but with real_offset and gap is not the solution */
-    offset = (position - a_buffer->real_offset - gap);
+    /* offset is viewed as the
+     *  - offset in the buffer a_buffer just read above
+     *  - offset in the returned buffer of the data
+     */
+    /* None of the two proposal here works  ! Todo : split the variable offset ! */
+    /* offset = position - (a_buffer->offset * LIBFCL_BUF_SIZE); */
+    offset = (position + *in_data); /*- a_buffer->real_offset - gap); */
 
     print_message("offset : %ld; size : %ld\n", offset, size);
 
@@ -615,7 +622,7 @@ static guchar *read_bytes_at_position(fcl_file_t *a_file, goffset position, gsiz
                     real_size = size - (a_buffer->size - offset);
                     *in_data = *in_data + (a_buffer->size - offset);
 
-                    next_data = read_bytes_at_position(a_file, a_buffer->real_offset + a_buffer->size, &real_size, in_data);
+                    next_data = read_bytes_at_position(a_file, position + a_buffer->size, &real_size, in_data);
 
                     if (next_data != NULL)
                         {
