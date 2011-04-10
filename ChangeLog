@@ -1,6 +1,9 @@
 10.04.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Now it seems that reading in a file, where data has been deleted is ok.
+     * Modified the reading test in order that it'll be less obvious. It seems
+       to pass...
+     * Documentation
 
 05.04.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>

@@ -23,6 +23,15 @@
  */
 /** @file fcl.c
  * Main library file
+ * The idea is to virtually split a file into buffers that does exactly
+ * LIBFCL_BUF_SIZE bytes (at first). Then it is "simply" a buffer management
+ * matter. When bytes are deleted in the file, bytes are deleted in buffers
+ * which are memorized in the sequence (thus the buffer size might be lower than
+ * LIBFCL_BUF_SIZE bytes. When inserting bytes into the file, the bytes are
+ * inserted within one single buffer thus, the buffer size might be greater than
+ * LIBFCL_BUF_SIZE bytes.
+ * Each time a buffer is modified it is memorized in the sequence associated
+ * with the file.
  */
 /**
  * @author Olivier DELHOMME,
@@ -664,9 +673,6 @@ static guchar *read_bytes_at_position(fcl_file_t *a_file, goffset position, gsiz
 }
 
 
-
-
-
 /**
  * Inserts a buffer in the sequence (only if it is not already in it !)
  */
@@ -810,6 +816,17 @@ static gboolean delete_bytes_at_position(fcl_file_t *a_file, goffset position, g
     a_buffer = read_buffer_at_position(a_file, position, &gap);
 
     buf_position = (position - a_buffer->real_offset);
+
+    print_message("buf_position : %ld <? %ld : a_buffer->size\n", buf_position, a_buffer->size);
+
+    /* Adding this because there is no reason that the behavior will be different
+     * than read_bytes_at_position. If the offset is below 0 or upper than
+     * a_buffer->size we need to correct it with gap
+     */
+    if (buf_position < 0 || buf_position >= a_buffer->size)
+        {
+            buf_position = buf_position - gap;
+        }
 
     print_message("buf_position : %ld <? %ld : a_buffer->size\n", buf_position, a_buffer->size);
 

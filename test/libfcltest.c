@@ -342,11 +342,11 @@ static void test_openning_and_deleting_in_files(void)
 
     /* Deleting bytes */
     size = 30;
-    fcl_delete_bytes(my_test_file, 0, &size);
+    fcl_delete_bytes(my_test_file, 5, &size);
 
     /* Verifying this */
     size = 200;
-    data = fcl_read_bytes(my_test_file, 0, &size);
+    data = fcl_read_bytes(my_test_file, 2, &size);
     fcl_print_data(data, size, TRUE);
 
     fcl_close_file(my_test_file, FALSE);
