@@ -1,3 +1,7 @@
+10.04.2011
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * Now it seems that reading in a file, where data has been deleted is ok.
+
 05.04.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Trying to understand where the problem might be !

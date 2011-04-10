@@ -551,6 +551,7 @@ static fcl_buf_t *read_buffer_at_position(fcl_file_t *a_file, goffset position, 
 
 /**
  * This function reads an fcl_buf_t buffer from an fcl_file_t
+ * @warning this function is recursive.
  * @param a_file : the fcl_file_t file from which we want to read size bytes
  * @param position : the position where we want to read bytes
  * @param[in,out] size_pointer : the number of bytes we want to read. The value
@@ -580,18 +581,20 @@ static guchar *read_bytes_at_position(fcl_file_t *a_file, goffset position, gsiz
 
     a_buffer = read_buffer_at_position(a_file, position, &gap);
 
-    /* There is something here, may be same mistake than *size_pointer but with real_offset and gap is not the solution */
-    /* offset is viewed as the
-     *  - offset in the buffer a_buffer just read above
-     *  - offset in the returned buffer of the data
-     */
-    /* None of the two proposal here works  ! Todo : split the variable offset ! */
-    /* offset = position - (a_buffer->offset * LIBFCL_BUF_SIZE); */
-    offset = (position + *in_data); /*- a_buffer->real_offset - gap); */
+    /* offset is viewed as the offset in the buffer a_buffer just read above */
+    offset = position - a_buffer->real_offset;
 
     print_message("offset : %ld; size : %ld\n", offset, size);
 
-    if (offset >= 0 && offset <= a_buffer->size)
+    /* If the offset is below 0 or upper than a_buffer->size we need to correct it with gap */
+    if (offset < 0 || offset >= a_buffer->size)
+        {
+            offset = offset - gap;
+        }
+
+    print_message("offset : %ld; size : %ld\n", offset, size);
+
+    if (offset >= 0 && offset <= a_buffer->size) /* The offset is within the buffer data */
         {
             if (a_buffer->size >= offset + size) /* The claimed data is all in the buffer */
                 {
@@ -600,8 +603,8 @@ static guchar *read_bytes_at_position(fcl_file_t *a_file, goffset position, gsiz
                     print_message("size : %ld\n", size);
                     *in_data = *in_data + size;
                 }
-            else if (a_buffer->size != LIBFCL_BUF_SIZE && a_buffer->in_seq == FALSE)
-                { /* Not all the buffer was filled but the buffer is not in the sequence. the buffer was read in the file hence this is the end of the file */
+            else if (a_buffer->size < LIBFCL_BUF_SIZE && a_buffer->in_seq == FALSE)
+                { /* Not all the buffer was filled but the buffer is not in the sequence. The buffer was read in the file hence this is the end of the file */
 
                     size = a_buffer->size - offset;
                     if (size  > 0)
@@ -622,7 +625,7 @@ static guchar *read_bytes_at_position(fcl_file_t *a_file, goffset position, gsiz
                     real_size = size - (a_buffer->size - offset);
                     *in_data = *in_data + (a_buffer->size - offset);
 
-                    next_data = read_bytes_at_position(a_file, position + a_buffer->size, &real_size, in_data);
+                    next_data = read_bytes_at_position(a_file, position + (a_buffer->size - offset), &real_size, in_data);
 
                     if (next_data != NULL)
                         {

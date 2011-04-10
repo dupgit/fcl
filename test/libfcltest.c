@@ -210,7 +210,7 @@ static void test_openning_and_reading_files(void)
     buffer = fcl_read_bytes(my_test_file, 65525, &size);
     if (buffer != NULL)
         {
-            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), size, 65530);
+            print_message(buffer != NULL, Q_("Read (%d bytes at %d) : "), size, 65525);
             fcl_print_data(buffer, size, TRUE);
         }
     else
