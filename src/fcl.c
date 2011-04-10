@@ -294,7 +294,7 @@ extern gboolean fcl_delete_bytes(fcl_file_t *a_file, goffset position, gsize *si
 
 /**
  * Prints a buffer data (exactly 'size' bytes)
- * @todo : print UTF8 encoded values
+ * @todo : print UTF8 encoded values ?
  * @param data : buffer data to be printed
  * @param size : number of bytes to prints (from data)
  * @param EOL : prints an End Of Line if TRUE, nothing if FALSE
@@ -304,25 +304,27 @@ extern void fcl_print_data(guchar *data, gsize size, gboolean EOL)
     gsize i = 0;
     gunichar c;   /** a character to test */
 
-    for (i = 0; i < size ; i++)
+    if (data != NULL)
         {
-            c = data[i];
+            for (i = 0; i < size ; i++)
+                {
+                    c = data[i];
 
-            if (g_unichar_isprint(c))
-                {
-                    g_print("%c", c);
+                    if (g_unichar_isprint(c))
+                        {
+                            g_print("%c", c);
+                        }
+                    else
+                        {
+                            g_print(".");
+                        }
                 }
-            else
+
+            if (EOL == TRUE)
                 {
-                    g_print(".");
+                    g_print("\n");
                 }
         }
-
-    if (EOL == TRUE)
-        {
-            g_print("\n");
-        }
-
 }
 
 
