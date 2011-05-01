@@ -1,3 +1,7 @@
+01.05.2011
+   - Olivier Delhomme <olivier.delhomme@free.fr>
+     * HISTORY changes as things comes to my mind
+
 10.04.2011
    - Olivier Delhomme <olivier.delhomme@free.fr>
      * Now it seems that reading in a file, where data has been deleted is ok.
