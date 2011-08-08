@@ -1,139 +1,145 @@
+08.08.2011
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * ReSTifying ChangeLog, RoadMap, HISTORY and README
+
 01.05.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * HISTORY changes as things comes to my mind
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * HISTORY changes as things comes to my mind
 
 10.04.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Now it seems that reading in a file, where data has been deleted is ok.
-     * Modified the reading test in order that it'll be less obvious. It seems
-       to pass...
-     * Documentation
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Now it seems that reading in a file, where data has been deleted is
+          ok.
+        * Modified the reading test in order that it'll be less obvious. It
+          seems to pass...
+        * Documentation
 
 05.04.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Trying to understand where the problem might be !
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Trying to understand where the problem might be !
 
 03.04.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * I was using one single variable for two different things ! Trying to look
-       for where things might be screwed up.
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * I was using one single variable for two different things ! Trying to
+          look for where things might be screwed up.
 
 22.03.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Found things tat was not ok... Still have to correct the fcl_read_bytes
-       second case.
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Found things that was not ok... Still have to correct the
+          fcl_read_bytes second case.
 
 21.03.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Correcting bugs in deleting files (still a huge number of bugs in there)
-     * tuning testing values
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Correcting bugs in deleting files (still a huge number of bugs in
+          there)
+        * tuning testing values
 
 05.03.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Deleting bytes
-     * simplifying code (is_in_sequence not needed when a boolean values already
-       indicates the presence or not).
-     * deleting basic test
-     * on the difficult road to save the file
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Deleting bytes
+        * simplifying code (is_in_sequence not needed when a boolean values
+          already indicates the presence or not).
+        * deleting basic test
+        * on the difficult road to save the file
 
 03.03.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Working on deleting bytes in buffers
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Working on deleting bytes in buffers
 
 28.02.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Memory allocation bug corrected
-     * "Fancier" libfcltest output
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Memory allocation bug corrected
+        * "Fancier" libfcltest output
 
 27.02.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Bug corrections.
-     * Freeying memory.
-     * Real size of the read buffer (or overwritten buffer).
-     * Debug option to the configure script.
-     * Killing max buffer size limit.
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Bug corrections.
+        * Freeying memory.
+        * Real size of the read buffer (or overwritten buffer).
+        * Debug option to the configure script.
+        * Killing max buffer size limit.
 
 26.02.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Now reading seems ok, even when reading at the end of a file
-     * Basic overwriting seems to work (need to do inserts to be able to test
-       it more)
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Now reading seems ok, even when reading at the end of a file
+        * Basic overwriting seems to work (need to do inserts to be able to test
+          it more)
 
 20.02.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Reading is ok (merly - still need to do the in between two buffers)
-     * overwriting is now at a begining
-     * Roadmap change ;-) !
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Reading is ok (merly - still need to do the in between two buffers)
+        * overwriting is now at a begining
+        * Roadmap change ;-) !
 
 19.02.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Trying to do something with buffers
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Trying to do something with buffers
 
 17.02.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * heading to a buffer management style
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * heading to a buffer management style
 
 16.02.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Trying to get things simpler
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Trying to get things simpler
 
 02.01.2011
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Removed all complex stuff !
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Removed all complex stuff !
 
 28.11.2010
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-      * I do not know where I am going but it's for sure somwhere !!
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * I do not know where I am going but it's for sure somwhere !!
 
 23.11.2010
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Working on buffers
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Working on buffers
 
 22.11.2010
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * ChangeLog corrections
-     * Documentation of the API
-     * Begining work on functions to enable writes to the file
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * ChangeLog corrections
+        * Documentation of the API
+        * Begining work on functions to enable writes to the file
 
 12.10.2010
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Testing reading a part of a file
-     * Translatable testing suite
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Testing reading a part of a file
+        * Translatable testing suite
 
 10.10.2010
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Link to the web site (https://gna.org/projects/fcl/)
-     * Added a doxygen documentation file and generated a first documentation
-     * Working on reading a file
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Link to the web site (https://gna.org/projects/fcl/)
+        * Added a doxygen documentation file and generated a first documentation
+        * Working on reading a file
 
 29.09.2010
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Avoid duplicating code
-     * Closing a file
-     * Now testing seems to work
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Avoid duplicating code
+        * Closing a file
+        * Now testing seems to work
 
 27.09.2010
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * configure.ac and Makefile.am corrections
-     * Now testlibfcl compiles and ... seg faults ! This shows that testing is
-       more than important.
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * configure.ac and Makefile.am corrections
+        * Now testlibfcl compiles and ... seg faults ! This shows that testing
+          is more than important.
 
 22.09.2010
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Typos and include dir corrections
-     * Some documentation has moved to the fcl.h file has this is the file that
-       gets distributed with the library
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Typos and include dir corrections
+        * Some documentation has moved to the fcl.h file has this is the file
+          that gets distributed with the library
 
 21.09.2010
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Roadmap creation
-     * Added AUTHORS and NEWS file
-     * Implementing slowly things.
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Roadmap creation
+        * Added AUTHORS and NEWS file
+        * Implementing slowly things.
 
 10.09.2010
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Begining things very slowly. Structures definitions. GIO inclusion.
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Begining things very slowly. Structures definitions. GIO inclusion.
 
 07.09.2010
-   - Olivier Delhomme <olivier.delhomme@free.fr>
-     * Project creation
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Project creation

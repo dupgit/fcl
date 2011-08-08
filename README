@@ -1,10 +1,11 @@
-Compiling the library if you have the svn sources (the easy way)
+Compiling the library if you have the svn sources (the easy way) ::
 
- ./autoclean.sh
- ./autogen.sh
- ./configure
- make
+    ./autoclean.sh
+    ./autogen.sh
+    ./configure
+    make
 
-Optional (system installation) :
- sudo make install
+Optional (system installation) ::
+
+    sudo make install
 
