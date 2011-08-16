@@ -264,6 +264,7 @@ static void test_openning_and_overwriting_files(void)
     gboolean result = TRUE;
     gsize size = 0;
     gchar *filename = NULL;
+    gsize max_buf_size = 0;
 
     buffer = (guchar *) g_strdup_printf("ABC");
 
@@ -274,10 +275,12 @@ static void test_openning_and_overwriting_files(void)
 
     print_message(result == FALSE, Q_("Trying to overwrite in a READ ONLY opened file"));
 
+    max_buf_size = fcl_get_maximum_buffer_size(my_test_file);
+    fprintf(stdout, "Maximum buffer size == %ld\n", max_buf_size);
+
     fcl_close_file(my_test_file, FALSE);
 
     /* Testing to overwrite into a file (without saving) */
-    /* @todo change /home/dup in a home user path        */
     filename = g_build_path(G_DIR_SEPARATOR_S, get_home_dir(), ".bashrc", NULL);
     my_test_file = fcl_open_file(filename, LIBFCL_MODE_WRITE);
     size = 3;
@@ -289,6 +292,9 @@ static void test_openning_and_overwriting_files(void)
     size = 10;
     data = fcl_read_bytes(my_test_file, 0, &size);
     fcl_print_data(data, size, TRUE);
+
+    max_buf_size = fcl_get_maximum_buffer_size(my_test_file);
+    fprintf(stdout, "Maximum buffer size == %ld\n", max_buf_size);
 
     fcl_close_file(my_test_file, FALSE);
 
@@ -306,6 +312,7 @@ static void test_openning_and_inserting_in_files(void)
     guchar *buffer = NULL;
     guchar *data = NULL;
     gsize size = 0;
+    gsize max_buf_size = 0;
 
     buffer = (guchar *) g_strdup_printf("Is this inserted in the file ??");
 
@@ -322,6 +329,9 @@ static void test_openning_and_inserting_in_files(void)
     fprintf(stdout, Q_("Size read : %ld\n"), size);
     fcl_print_data(data, size, TRUE);
 
+    max_buf_size = fcl_get_maximum_buffer_size(my_test_file);
+    fprintf(stdout, "Maximum buffer size == %ld\n", max_buf_size);
+
     fcl_close_file(my_test_file, FALSE);
 }
 
@@ -335,6 +345,7 @@ static void test_openning_and_deleting_in_files(void)
     guchar *data = NULL;
     gsize size = 0;
     gchar *filename = NULL;
+    gsize max_buf_size = 0;
 
     filename = g_build_path(G_DIR_SEPARATOR_S, get_home_dir(), ".bashrc", NULL);
     my_test_file = fcl_open_file(filename, LIBFCL_MODE_WRITE);
@@ -348,6 +359,9 @@ static void test_openning_and_deleting_in_files(void)
     size = 200;
     data = fcl_read_bytes(my_test_file, 2, &size);
     fcl_print_data(data, size, TRUE);
+
+    max_buf_size = fcl_get_maximum_buffer_size(my_test_file);
+    fprintf(stdout, "Maximum buffer size == %ld\n", max_buf_size);
 
     fcl_close_file(my_test_file, FALSE);
 }

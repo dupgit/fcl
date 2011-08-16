@@ -985,6 +985,49 @@ static goffset get_gfile_file_size(GFile *the_file)
 }
 
 /**
+ * Gets the maximum of the buffers sizes of a fcl_file_t file.
+ * @param a_file : an openned fcl_file_t file.
+ * @return the maximum of the sizes of the buffers that are in the Gsequence
+ *         structure of the fcl_file_t structure. Returns 0 if the structure
+ *         does not exists or does not have any buffers.
+ */
+gsize fcl_get_maximum_buffer_size(fcl_file_t *a_file)
+{
+    fcl_buf_t * seq_buf = NULL;
+    GSequenceIter *iter = NULL;
+    GSequenceIter *end = NULL;
+    gboolean ok = TRUE;
+    gsize max = 0;
+
+    if (a_file != NULL && a_file->sequence != NULL)
+        {
+            ok = TRUE;
+            iter = g_sequence_get_begin_iter(a_file->sequence);
+            end = g_sequence_get_end_iter(a_file->sequence);
+            seq_buf = g_sequence_get(iter);
+
+            while (ok == TRUE)
+                {
+                    if (seq_buf->size > max)
+                        {
+                            max = seq_buf->size;
+                        }
+                    if (iter == end)
+                        {
+                            ok = FALSE;
+                        }
+                    else
+                        {
+                            iter = g_sequence_iter_next(iter);
+                        }
+                }
+        }
+
+    return max;
+}
+
+
+/**
  * @warning Still to be built !
  */
 static gboolean save_the_file(fcl_file_t *a_file)

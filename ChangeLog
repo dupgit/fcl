@@ -1,3 +1,8 @@
+16.08.2011
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Added fcl_get_maximum_buffer_size function that may help to find out
+          the buffer size needed to save the file in place.
+
 08.08.2011
     - Olivier Delhomme <olivier.delhomme@free.fr>
         * ReSTifying ChangeLog, RoadMap, HISTORY and README

@@ -229,4 +229,13 @@ extern gboolean fcl_delete_bytes(fcl_file_t *a_file, goffset position, gsize *si
 extern void fcl_print_data(guchar *data, gsize size, gboolean EOL);
 
 
+/**
+ * Gets the maximum of the buffers sizes of a fcl_file_t file.
+ * @param a_file : an openned fcl_file_t file.
+ * @return the maximum of the sizes of the buffers that are in the Gsequence
+ *         structure of the fcl_file_t structure. Returns 0 if the structure
+ *         does not exists or does not have any buffers.
+ */
+extern gsize fcl_get_maximum_buffer_size(fcl_file_t *a_file);
+
 #endif /* _LIBFCL_H_ */
