@@ -120,6 +120,20 @@ typedef struct
 
 
 /**
+ * @struct fcl_stat_buf_t
+ * Structure that can manage some statistics about the buffers in the sequence
+ * of an fcl_file_t
+ */
+typedef struct
+{
+    gsize min_buf_size;   /** Minimum size of a buffer in the sequence */
+    gsize max_buf_size;   /** Maximum size of a buffer in the sequence */
+    gsize add_size;       /** Additions done within the sequence (file)*/
+    gsize real_edit_size; /** Real size of the additions and deletions */
+}
+
+
+/**
  * @def LIBFCL_MAX_BUF_SIZE
  * Maximum buffer size that the library handles (This value is 2^20 as this was
  * the total amount of memory that my Atari 1040 ST had !). I don't know if this
