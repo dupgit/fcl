@@ -3,6 +3,7 @@
         * Added a new structure in order to retrieve some statistics on the
           sequence within the fcl_file_t structure. This will help to save the
           file in place.
+        * Added the function that retrives the statistics.
 
 16.08.2011
     - Olivier Delhomme <olivier.delhomme@free.fr>

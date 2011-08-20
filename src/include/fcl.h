@@ -126,11 +126,11 @@ typedef struct
  */
 typedef struct
 {
-    gsize min_buf_size;   /** Minimum size of a buffer in the sequence */
-    gsize max_buf_size;   /** Maximum size of a buffer in the sequence */
-    gsize add_size;       /** Additions done within the sequence (file)*/
-    gsize real_edit_size; /** Real size of the additions and deletions */
-}
+    gssize min_buf_size;   /** Minimum size of a buffer in the sequence */
+    gssize max_buf_size;   /** Maximum size of a buffer in the sequence */
+    gssize add_size;       /** Additions done within the sequence (file)*/
+    gssize real_edit_size; /** Real size of the additions and deletions */
+} fcl_stat_buf_t;
 
 
 /**
@@ -244,12 +244,12 @@ extern void fcl_print_data(guchar *data, gsize size, gboolean EOL);
 
 
 /**
- * Gets the maximum of the buffers sizes of a fcl_file_t file.
+ * Gets the statistics of the buffers of a fcl_file_t file.
  * @param a_file : an openned fcl_file_t file.
- * @return the maximum of the sizes of the buffers that are in the Gsequence
- *         structure of the fcl_file_t structure. Returns 0 if the structure
- *         does not exists or does not have any buffers.
+ * @return A newly allocated fcl_stat_buf_t filled with the statistics about
+ *         the sequence structure of the fcl_file_t structure. Returns NULL if
+ *         the structure does not exists or does not have any buffers.
  */
-extern gsize fcl_get_maximum_buffer_size(fcl_file_t *a_file);
+extern fcl_stat_buf_t *fcl_get_buffer_stats(fcl_file_t *a_file);
 
 #endif /* _LIBFCL_H_ */

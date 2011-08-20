@@ -363,9 +363,9 @@ static void print_buffer(gpointer data, gpointer user_data)
 
     if (ENABLE_DEBUG)
         {
-            fprintf(stdout, "Offset      : %ld\n", a_buffer->offset);
-            fprintf(stdout, "Real offset : %ld\n", a_buffer->real_offset);
-            fprintf(stdout, "Size        : %ld\n", a_buffer->size);
+            fprintf(stdout, "Offset      : %Ld\n", a_buffer->offset);
+            fprintf(stdout, "Real offset : %Ld\n", a_buffer->real_offset);
+            fprintf(stdout, "Size        : %d\n", a_buffer->size);
 
             if (a_buffer->in_seq == TRUE)
                 {
@@ -985,45 +985,62 @@ static goffset get_gfile_file_size(GFile *the_file)
 }
 
 /**
- * Gets the maximum of the buffers sizes of a fcl_file_t file.
- * @param a_file : an openned fcl_file_t file.
- * @return the maximum of the sizes of the buffers that are in the Gsequence
- *         structure of the fcl_file_t structure. Returns 0 if the structure
- *         does not exists or does not have any buffers.
+ * Sums the stats within a foreach function
  */
-gsize fcl_get_maximum_buffer_size(fcl_file_t *a_file)
+static void sum_stats(gpointer data, gpointer user_data)
 {
-    fcl_buf_t * seq_buf = NULL;
-    GSequenceIter *iter = NULL;
-    GSequenceIter *end = NULL;
-    gboolean ok = TRUE;
-    gsize max = 0;
+    fcl_buf_t *seq_buf = (fcl_buf_t *) data;
+    fcl_stat_buf_t *stats = (fcl_stat_buf_t *) user_data;
+    gssize gap = 0;
+
+    if (seq_buf != NULL && stats != NULL)
+        {
+
+            if (seq_buf->size > stats->max_buf_size)
+                {
+                    stats->max_buf_size = seq_buf->size;
+                }
+            if (seq_buf->size < stats->min_buf_size)
+                {
+                    stats->min_buf_size = seq_buf->size;
+                }
+
+            gap = seq_buf->size - LIBFCL_BUF_SIZE;
+
+            stats->real_edit_size = stats->real_edit_size + gap;
+
+            if (gap > 0)
+                {
+                    stats->add_size = stats->add_size + gap;
+                }
+        }
+}
+
+
+/**
+ * Gets the statistics of the buffers of a fcl_file_t file.
+ * @param a_file : an openned fcl_file_t file.
+ * @return A newly allocated fcl_stat_buf_t filled with the statistics about
+ *         the sequence structure of the fcl_file_t structure. Returns NULL if
+ *         the structure does not exists or does not have any buffers.
+ */
+fcl_stat_buf_t *fcl_get_buffer_stats(fcl_file_t *a_file)
+{
+    fcl_stat_buf_t *stats = NULL;
 
     if (a_file != NULL && a_file->sequence != NULL)
         {
-            ok = TRUE;
-            iter = g_sequence_get_begin_iter(a_file->sequence);
-            end = g_sequence_get_end_iter(a_file->sequence);
-            seq_buf = g_sequence_get(iter);
+            stats = (fcl_stat_buf_t *) g_malloc0 (sizeof(fcl_file_t));
 
-            while (ok == TRUE)
-                {
-                    if (seq_buf->size > max)
-                        {
-                            max = seq_buf->size;
-                        }
-                    if (iter == end)
-                        {
-                            ok = FALSE;
-                        }
-                    else
-                        {
-                            iter = g_sequence_iter_next(iter);
-                        }
-                }
+            stats->min_buf_size = G_MAXSSIZE;
+            stats->max_buf_size = 0;
+            stats->add_size = 0;
+            stats->real_edit_size = 0;
+
+            g_sequence_foreach(a_file->sequence, sum_stats, stats);
         }
 
-    return max;
+    return stats;
 }
 
 
