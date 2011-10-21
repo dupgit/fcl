@@ -1,6 +1,12 @@
+18.10.2011
+    - Olivier Delhomme <olivier.delhomme@free.fr>
+        * Now closing a file in DEBUG mode displays the buffers themselves and
+          the statistics on the buffers (min len, max len, maximum edition size
+          and so on).
+
 23.08.2011
     - Olivier Delhomme <olivier.delhomme@free.fr>
-        * Changing the FSF adress to the right one.
+        * Changing the FSF address to the right one.
 
 20.08.2011
     - Olivier Delhomme <olivier.delhomme@free.fr>

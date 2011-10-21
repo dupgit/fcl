@@ -94,30 +94,6 @@ static void print_message(gboolean success, const char *format, ...)
 
 
 /**
- * Prints stats of the buffers (if any) on an fcl_file_t file
- */
-static void print_buffer_stats(fcl_file_t *a_file)
-{
-    fcl_stat_buf_t *stats = NULL;
-
-    stats = fcl_get_buffer_stats(a_file);
-
-    if (stats != NULL)
-        {
-            fprintf(stdout, "\n");
-            fprintf(stdout, "Buffer statistics on %s :\n", a_file->name);
-            fprintf(stdout, " Min buffer size : %d\n", stats->min_buf_size);
-            fprintf(stdout, " Max buffer size : %d\n", stats->max_buf_size);
-            fprintf(stdout, " Additions size : %d\n", stats->add_size);
-            fprintf(stdout, " Real buffer edition sizes : %d\n", stats->real_edit_size);
-            fprintf(stdout, "\n");
-
-            g_free(stats);
-        }
-}
-
-
-/**
  * Retrieves the home dir
  * @return the home dir in a gchar * that can be freed when no longer needed
  */
@@ -299,8 +275,6 @@ static void test_openning_and_overwriting_files(void)
 
     print_message(result == FALSE, Q_("Trying to overwrite in a READ ONLY opened file"));
 
-    print_buffer_stats(my_test_file);
-
     fcl_close_file(my_test_file, FALSE);
 
     /* Testing to overwrite into a file (without saving) */
@@ -315,8 +289,6 @@ static void test_openning_and_overwriting_files(void)
     size = 10;
     data = fcl_read_bytes(my_test_file, 0, &size);
     fcl_print_data(data, size, TRUE);
-
-    print_buffer_stats(my_test_file);
 
     fcl_close_file(my_test_file, FALSE);
 
@@ -350,8 +322,6 @@ static void test_openning_and_inserting_in_files(void)
     fprintf(stdout, Q_("Size read : %d\n"), size);
     fcl_print_data(data, size, TRUE);
 
-    print_buffer_stats(my_test_file);
-
     fcl_close_file(my_test_file, FALSE);
 }
 
@@ -378,8 +348,6 @@ static void test_openning_and_deleting_in_files(void)
     size = 200;
     data = fcl_read_bytes(my_test_file, 2, &size);
     fcl_print_data(data, size, TRUE);
-
-    print_buffer_stats(my_test_file);
 
     fcl_close_file(my_test_file, FALSE);
 }

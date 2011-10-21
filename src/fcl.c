@@ -131,9 +131,12 @@ fcl_file_t *fcl_open_file(gchar *path, gint mode)
  */
 void fcl_close_file(fcl_file_t *a_file, gboolean save)
 {
-    g_free(a_file->name);
 
+    /* printing statistics on the file and its sequence */
     print_buffers_situation_in_sequence(a_file->sequence);
+    fcl_print_buffer_stats(a_file);
+
+    g_free(a_file->name);
 
     if (save == TRUE)
         {
@@ -386,6 +389,7 @@ static void print_buffers_situation_in_sequence(GSequence *sequence)
         {
             fprintf(stdout, "\nBuffers in the sequence :\n");
             g_sequence_foreach(sequence, print_buffer, NULL);
+
         }
 }
 
@@ -986,6 +990,8 @@ static goffset get_gfile_file_size(GFile *the_file)
 
 /**
  * Sums the stats within a foreach function
+ * @param data must be a buffer as found in a sequence
+ * @param user_data must be the fcl_stat_buf_t* statistics structure
  */
 static void sum_stats(gpointer data, gpointer user_data)
 {
@@ -996,24 +1002,55 @@ static void sum_stats(gpointer data, gpointer user_data)
     if (seq_buf != NULL && stats != NULL)
         {
 
+            /* Number of buffers in the sequence */
+            stats->n_bufs = stats->n_bufs + 1;
+
+            /* Maximum size of one buffer */
             if (seq_buf->size > stats->max_buf_size)
                 {
                     stats->max_buf_size = seq_buf->size;
                 }
+
+            /* Minimum size of one buffer */
             if (seq_buf->size < stats->min_buf_size)
                 {
                     stats->min_buf_size = seq_buf->size;
                 }
 
+            /* gap represents additions or deletions in the buffers */
             gap = seq_buf->size - LIBFCL_BUF_SIZE;
 
+            /* Total edition size */
             stats->real_edit_size = stats->real_edit_size + gap;
 
+            /* Here we do track additions only */
             if (gap > 0)
                 {
                     stats->add_size = stats->add_size + gap;
                 }
         }
+}
+
+
+/**
+ * Inits the statistics structure to default values. The structure must be freed
+ * when no longer needed
+ * @return an newly allocated and default values populated fcl_stat_buf_t*
+ *         structure
+ */
+fcl_stat_buf_t *fcl_init_buffer_stats()
+{
+    fcl_stat_buf_t *stats = NULL;
+
+    stats = (fcl_stat_buf_t *) g_malloc0 (sizeof(fcl_file_t));
+
+    stats->min_buf_size = G_MAXSSIZE;
+    stats->max_buf_size = 0;
+    stats->add_size = 0;
+    stats->real_edit_size = 0;
+    stats->n_bufs = 0;
+
+    return stats;
 }
 
 
@@ -1030,18 +1067,44 @@ fcl_stat_buf_t *fcl_get_buffer_stats(fcl_file_t *a_file)
 
     if (a_file != NULL && a_file->sequence != NULL)
         {
-            stats = (fcl_stat_buf_t *) g_malloc0 (sizeof(fcl_file_t));
-
-            stats->min_buf_size = G_MAXSSIZE;
-            stats->max_buf_size = 0;
-            stats->add_size = 0;
-            stats->real_edit_size = 0;
+            stats = fcl_init_buffer_stats();
 
             g_sequence_foreach(a_file->sequence, sum_stats, stats);
         }
 
     return stats;
 }
+
+
+/**
+ * Prints stats of the buffers (if any) on an fcl_file_t file
+ * @param an openned fcl_file_t*
+ */
+void fcl_print_buffer_stats(fcl_file_t *a_file)
+{
+    fcl_stat_buf_t *stats = NULL;
+
+    if (a_file != NULL)
+        {
+            stats = fcl_get_buffer_stats(a_file);
+
+            if (stats != NULL)
+                {
+                    fprintf(stdout, "\n");
+                    fprintf(stdout, "Buffer statistics on %s :\n", a_file->name);
+                    fprintf(stdout, " Number of buffers : %Ld\n", stats->n_bufs);
+                    fprintf(stdout, " Min buffer size   : %d\n", stats->min_buf_size);
+                    fprintf(stdout, " Max buffer size   : %d\n", stats->max_buf_size);
+                    fprintf(stdout, " Additions size    : %d\n", stats->add_size);
+                    fprintf(stdout, " Deletion size     : %d\n", stats->add_size - stats->real_edit_size);
+                    fprintf(stdout, " Real buffer edition sizes : %d\n", stats->real_edit_size);
+                    fprintf(stdout, "\n");
+
+                    g_free(stats);
+                }
+        }
+}
+
 
 
 /**

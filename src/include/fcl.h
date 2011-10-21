@@ -130,6 +130,7 @@ typedef struct
     gssize max_buf_size;   /** Maximum size of a buffer in the sequence */
     gssize add_size;       /** Additions done within the sequence (file)*/
     gssize real_edit_size; /** Real size of the additions and deletions */
+    guint64 n_bufs;        /** Number of buffers in the sequence        */
 } fcl_stat_buf_t;
 
 
@@ -251,5 +252,23 @@ extern void fcl_print_data(guchar *data, gsize size, gboolean EOL);
  *         the structure does not exists or does not have any buffers.
  */
 extern fcl_stat_buf_t *fcl_get_buffer_stats(fcl_file_t *a_file);
+
+
+/**
+ * Inits the statistics structure to default values. The structure must be freed
+ * when no longer needed
+ * @return an newly allocated and default values populated fcl_stat_buf_t*
+ *         structure
+ */
+extern fcl_stat_buf_t *fcl_init_buffer_stats();
+
+
+/**
+ * Prints stats of the buffers (if any) on an fcl_file_t file
+ * @param an openned fcl_file_t*
+ */
+extern void fcl_print_buffer_stats(fcl_file_t *a_file);
+
+
 
 #endif /* _LIBFCL_H_ */
