@@ -3,7 +3,7 @@
  *  libfcltest.h
  *  File Cache Library Test Header
  *
- *  (C) Copyright 2010 Olivier Delhomme
+ *  (C) Copyright 2010 - 2012 Olivier Delhomme
  *  e-mail : olivier.delhomme@free.fr
  *  URL    : https://gna.org/projects/fcl/
  *

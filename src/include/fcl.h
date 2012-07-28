@@ -3,7 +3,7 @@
  *  fcl.h
  *  File Cache Library header file
  *
- *  (C) Copyright 2010 - 2011 Olivier Delhomme
+ *  (C) Copyright 2010 - 2012 Olivier Delhomme
  *  e-mail : olivier.delhomme@free.fr
  *  URL    : https://gna.org/projects/fcl/
  *
@@ -151,7 +151,7 @@ typedef struct
  */
 
 /**
- * This function initializes the library it has to invoked first
+ * This function initializes the library it has to be invoked first
  */
 extern void libfcl_initialize(void);
 

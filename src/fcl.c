@@ -3,7 +3,7 @@
  *  fcl.c
  *  File Cache Library
  *
- *  (C) Copyright 2010 - 2011 Olivier Delhomme
+ *  (C) Copyright 2010 - 2012 Olivier Delhomme
  *  e-mail : olivier.delhomme@free.fr
  *  URL    : https://gna.org/projects/fcl/
  *
@@ -24,12 +24,13 @@
 /** @file fcl.c
  * Main library file
  * The idea is to virtually split a file into buffers that does exactly
- * LIBFCL_BUF_SIZE bytes (at first). Then it is "simply" a buffer management
- * matter. When bytes are deleted in the file, bytes are deleted in buffers
- * which are memorized in the sequence (thus the buffer size might be lower than
- * LIBFCL_BUF_SIZE bytes. When inserting bytes into the file, the bytes are
- * inserted within one single buffer thus, the buffer size might be greater than
- * LIBFCL_BUF_SIZE bytes.
+ * LIBFCL_BUF_SIZE bytes (at first).
+ *
+ * Then it is "simply" a buffer management matter. When bytes are deleted in the
+ * file, bytes are deleted in buffers which are memorized in the sequence thus
+ * the buffer size might be lower than LIBFCL_BUF_SIZE bytes.
+ * When inserting bytes into the file, the bytes are inserted within one single
+ * buffer thus, the buffer size might be greater than LIBFCL_BUF_SIZE bytes.
  * Each time a buffer is modified it is memorized in the sequence associated
  * with the file.
  */
